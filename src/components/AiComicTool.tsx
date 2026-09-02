@@ -50,6 +50,15 @@ export const AiComicTool: React.FC = () => {
     }
   }, [terminalLogs]);
 
+  // IPC Event Listener Unmount Cleanup
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && (window as any).electronAPI?.removeRenderListeners) {
+        (window as any).electronAPI.removeRenderListeners();
+      }
+    };
+  }, []);
+
   const samplePresets = [
     {
       name: "Lâm Phong",

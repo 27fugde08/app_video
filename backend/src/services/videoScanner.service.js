@@ -20,10 +20,10 @@ export class VideoScannerService {
    */
   detectPlatform(input = '') {
     const clean = input.toLowerCase().trim();
-    if (clean.includes('tiktok.com') || clean.startsWith('@tiktok')) return 'tiktok';
-    if (clean.includes('douyin.com') || clean.includes('iesdouyin.com')) return 'douyin';
-    if (clean.includes('youtube.com') || clean.includes('youtu.be')) return 'youtube';
-    if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com')) return 'facebook';
+    if (clean.includes('tiktok.com') || clean.includes('tiktok') || clean.includes('vt.tiktok') || clean.includes('vm.tiktok') || clean.startsWith('@tiktok')) return 'tiktok';
+    if (clean.includes('douyin.com') || clean.includes('iesdouyin.com') || clean.includes('v.douyin') || clean.includes('douyin')) return 'douyin';
+    if (clean.includes('youtube.com') || clean.includes('youtu.be') || clean.includes('youtube')) return 'youtube';
+    if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com') || clean.includes('facebook')) return 'facebook';
     if (clean.includes('instagram.com') || clean.includes('instagr.am')) return 'instagram';
     return 'general';
   }

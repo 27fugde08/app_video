@@ -50,14 +50,16 @@ class WatermarkLinkExtractor:
     @staticmethod
     def detect_platform(url: str) -> str:
         url_lower = url.lower()
-        if "douyin.com" in url_lower or "iesdouyin.com" in url_lower:
+        if "douyin.com" in url_lower or "iesdouyin.com" in url_lower or "v.douyin" in url_lower or "douyin" in url_lower:
             return "douyin"
-        elif "tiktok.com" in url_lower or "vt.tiktok.com" in url_lower:
+        elif "tiktok.com" in url_lower or "vt.tiktok" in url_lower or "vm.tiktok" in url_lower or "tiktok" in url_lower:
             return "tiktok"
-        elif "youtube.com" in url_lower or "youtu.be" in url_lower:
+        elif "youtube.com" in url_lower or "youtu.be" in url_lower or "youtube" in url_lower:
             return "youtube"
-        elif "facebook.com" in url_lower or "fb.watch" in url_lower or "fb.com" in url_lower:
+        elif "facebook.com" in url_lower or "fb.watch" in url_lower or "fb.com" in url_lower or "facebook" in url_lower:
             return "facebook"
+        elif "instagram.com" in url_lower or "instagr.am" in url_lower or "instagram" in url_lower:
+            return "instagram"
         return "generic"
 
     @classmethod

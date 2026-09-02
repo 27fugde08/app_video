@@ -14,7 +14,8 @@ import {
   RefreshCw,
   CheckCircle2,
   Folder,
-  FolderOpen
+  FolderOpen,
+  Mic
 } from "lucide-react";
 import { soundSynth } from "../utils/audioUtils";
 import { useToast } from "../context/ToastContext";
@@ -878,6 +879,30 @@ export function BatchDownloaderTool() {
             >
               <Film className="w-3.5 h-3.5 text-rose-400" />
               <span>Tải xuống & Chỉnh sửa</span>
+            </button>
+
+            {/* Direct Send to Video Dubbing */}
+            <button
+              onClick={() => {
+                if (selectedIds.size === 0) {
+                  addToast("Vui lòng chọn video để chuyển sang Lồng Tiếng AI.", "warning");
+                  return;
+                }
+                soundSynth.playSfx("success");
+                addTask({
+                  title: `Nạp ${selectedIds.size} video vào Trình Dịch Lồng Tiếng AI`,
+                  type: "render",
+                  status: "running",
+                  progress: 20
+                });
+                addToast(`Đã chuyển ${selectedIds.size} video sang Dịch Lồng Tiếng AI!`, "success");
+                window.dispatchEvent(new CustomEvent("creatoros:navigate", { detail: "translate" }));
+              }}
+              disabled={selectedIds.size === 0}
+              className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold flex items-center gap-1.5 shadow-sm shadow-indigo-600/20 transition-all disabled:opacity-40 cursor-pointer"
+            >
+              <Mic className="w-3.5 h-3.5 text-indigo-200" />
+              <span>Nạp sang Dịch Lồng Tiếng AI ({selectedIds.size})</span>
             </button>
 
             {/* Dừng tải */}

@@ -30,10 +30,11 @@ const scannedCatalog = new Map();
  */
 function detectPlatform(url = '') {
   const clean = url.toLowerCase().trim();
-  if (clean.includes('tiktok.com')) return 'tiktok';
-  if (clean.includes('douyin.com') || clean.includes('iesdouyin.com')) return 'douyin';
-  if (clean.includes('facebook.com') || clean.includes('fb.watch')) return 'facebook';
-  if (clean.includes('youtube.com') || clean.includes('youtu.be')) return 'youtube';
+  if (clean.includes('tiktok.com') || clean.includes('tiktok') || clean.includes('vt.tiktok') || clean.includes('vm.tiktok') || clean.startsWith('@tiktok')) return 'tiktok';
+  if (clean.includes('douyin.com') || clean.includes('iesdouyin.com') || clean.includes('v.douyin') || clean.includes('douyin')) return 'douyin';
+  if (clean.includes('facebook.com') || clean.includes('fb.watch') || clean.includes('fb.com') || clean.includes('facebook')) return 'facebook';
+  if (clean.includes('youtube.com') || clean.includes('youtu.be') || clean.includes('youtube')) return 'youtube';
+  if (clean.includes('instagram.com') || clean.includes('instagr.am') || clean.includes('instagram')) return 'instagram';
   return 'unknown';
 }
 

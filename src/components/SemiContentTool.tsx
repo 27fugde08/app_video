@@ -60,6 +60,14 @@ export const SemiContentTool: React.FC = () => {
 
   // Save bypassed video state when progress reaches 100%
   useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && (window as any).electronAPI?.removeRenderListeners) {
+        (window as any).electronAPI.removeRenderListeners();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
     if (progress >= 100) {
       try {
         const saved = localStorage.getItem("bypassedVideosState");
@@ -123,7 +131,7 @@ export const SemiContentTool: React.FC = () => {
       });
 
       const removeLog = electronAPI.onRenderLog((logMsg: string) => {
-        setTerminalLogs(prev => [...prev, logMsg]);
+        setTerminalLogs(prev => [...prev, logMsg].slice(-200));
       });
 
       const removeComplete = electronAPI.onRenderComplete(() => {

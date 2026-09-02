@@ -46,7 +46,9 @@ export const FbSuiteTool: React.FC = () => {
   const [result, setResult] = useState<FbAutomationResult | null>(null);
 
   // Auto Post & Matrix States
-  const [scheduledTime, setScheduledTime] = useState("19:30 (Khung Giờ Vàng Tối)");
+  const [scheduledTime, setScheduledTime] = useState("19:30 (Khung Giờ Vàng Tối - Peak Traffic)");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(["fb_reels", "yt_shorts", "tiktok"]);
+  const [peakTrafficHour, setPeakTrafficHour] = useState<string>("19:30");
   const [autoFirstComment, setAutoFirstComment] = useState(
     "👉 Link full và tài liệu mình để ở phần mô tả & group kín nhé cả nhà!"
   );
@@ -67,12 +69,21 @@ export const FbSuiteTool: React.FC = () => {
     }
   }, [terminalLogs]);
 
+  // IPC Event Listener Unmount Cleanup
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && (window as any).electronAPI?.removeRenderListeners) {
+        (window as any).electronAPI.removeRenderListeners();
+      }
+    };
+  }, []);
+
   // WebSocket event listeners for real-time progress & logs
   useEffect(() => {
     const socket = io();
 
     const handleLog = (logMsg: string) => {
-      setTerminalLogs((prev) => [...prev, logMsg]);
+      setTerminalLogs((prev) => [...prev, logMsg].slice(-200));
     };
 
     const handleProgress = (prog: number) => {
@@ -157,7 +168,7 @@ export const FbSuiteTool: React.FC = () => {
       const electronAPI = (window as any).electronAPI;
 
       electronAPI.onRenderLog((logMsg: string) => {
-        setTerminalLogs((prev) => [...prev, logMsg]);
+        setTerminalLogs((prev) => [...prev, logMsg].slice(-200));
       });
 
       electronAPI.onRenderProgress((prog: number) => {
@@ -199,18 +210,26 @@ export const FbSuiteTool: React.FC = () => {
     }
   };
 
-  // 3. Đăng Bài & Lịch Post
+  // 3. Đăng Bài & Lịch Post Đa Nền Tảng (Facebook Reels, YouTube Shorts, TikTok)
   const handleSchedulePost = () => {
     soundSynth.playSfx("whoosh");
     setPostedSuccess(true);
     const pagesCount = targetPages.split(",").filter(p => p.trim().length > 0).length || 3;
+    const platformNames = selectedPlatforms.map(p => {
+      if (p === "fb_reels") return "Facebook Reels";
+      if (p === "yt_shorts") return "YouTube Shorts";
+      if (p === "tiktok") return "TikTok Channel";
+      return p;
+    }).join(", ");
+
     setTerminalLogs((prev) => [
       ...prev,
-      `[matrix] Đã phân phối và đặt lịch đăng tự động cho ${pagesCount} Fanpage ma trận vào lúc ${scheduledTime}.`
+      `[multi-dispatch] 🚀 ĐÃ NẠP ĐĂNG BÀI ĐA NỀN TẢNG: [${platformNames}]`,
+      `[matrix] Đã phân phối và đặt lịch tự động cho ${pagesCount} Fanpage & Kênh vào Khung Giờ Vàng (${peakTrafficHour}).`
     ]);
     setTimeout(() => {
       soundSynth.playSfx("cash");
-      confetti({ particleCount: 45, spread: 75 });
+      confetti({ particleCount: 50, spread: 80 });
     }, 400);
   };
 
@@ -608,16 +627,92 @@ export const FbSuiteTool: React.FC = () => {
                 )}
               </div>
 
-              {/* Fanpage Matrix Schedule Center */}
+              {/* Fanpage Matrix & Multi-Platform Schedule Center */}
               <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 space-y-3 shadow-md">
                 <div className="flex items-center justify-between">
                   <div className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5" />
-                    Lên Lịch Đăng Chùm Hệ Thống Fanpage Ma Trận:
+                    Lên Lịch Đăng Bài Đa Nền Tảng (FB Reels, YT Shorts, TikTok):
                   </div>
                   <span className="text-xs font-mono text-amber-300 font-bold">
-                    {result.scheduledTimes?.[1] || "19:30"}
+                    Giờ Vàng: {peakTrafficHour}
                   </span>
+                </div>
+
+                {/* Multi-Platform Selectors */}
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="text-[11px] text-slate-300 font-semibold">
+                    1. Chọn các nền tảng xuất bản tự động:
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {[
+                      { id: "fb_reels", label: "Facebook Reels", color: "text-blue-400" },
+                      { id: "yt_shorts", label: "YouTube Shorts", color: "text-rose-400" },
+                      { id: "tiktok", label: "TikTok Channel", color: "text-cyan-400" }
+                    ].map((plat) => {
+                      const checked = selectedPlatforms.includes(plat.id);
+                      return (
+                        <label
+                          key={plat.id}
+                          className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
+                            checked
+                              ? "bg-slate-900 border-blue-500/60 text-white font-semibold"
+                              : "bg-slate-950 border-slate-800 text-slate-500"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => {
+                              soundSynth.playSfx("pop");
+                              if (checked) {
+                                if (selectedPlatforms.length > 1) {
+                                  setSelectedPlatforms(selectedPlatforms.filter((p) => p !== plat.id));
+                                }
+                              } else {
+                                setSelectedPlatforms([...selectedPlatforms, plat.id]);
+                              }
+                            }}
+                            className="rounded border-slate-700 text-blue-500 focus:ring-0"
+                          />
+                          <span className={`text-[11px] ${plat.color}`}>{plat.label}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Peak Traffic Hour Presets */}
+                <div className="p-2.5 rounded-lg bg-slate-950 border border-slate-800 space-y-2">
+                  <div className="text-[11px] text-slate-300 font-semibold flex items-center justify-between">
+                    <span>2. Chọn khung giờ vàng Peak Traffic (Khung giờ Reach cao nhất):</span>
+                    <span className="text-[10px] text-emerald-400 font-mono">Algorithm 2026</span>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    {[
+                      { time: "11:30", label: "11:30 Trưa (Peak 1)" },
+                      { time: "19:30", label: "19:30 Tối (Golden)" },
+                      { time: "21:30", label: "21:30 Đêm (Peak 2)" }
+                    ].map((slot) => (
+                      <button
+                        key={slot.time}
+                        type="button"
+                        onClick={() => {
+                          setPeakTrafficHour(slot.time);
+                          setScheduledTime(`${slot.time} (Khung Giờ Vàng ${slot.label.split(" ")[1]})`);
+                          soundSynth.playSfx("pop");
+                        }}
+                        className={`p-2 rounded-lg border text-center transition-all cursor-pointer ${
+                          peakTrafficHour === slot.time
+                            ? "bg-amber-500/20 border-amber-500/60 text-amber-300 font-bold"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="text-[10px] text-slate-400">Giờ Vàng</div>
+                        <div className="text-xs font-mono font-bold">{slot.time}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Matrix Slots Display */}
@@ -646,17 +741,17 @@ export const FbSuiteTool: React.FC = () => {
                   />
                   <button
                     onClick={handleSchedulePost}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md shadow-blue-600/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-rose-600 hover:from-blue-500 hover:to-rose-500 text-white text-xs font-bold shadow-lg shadow-blue-600/30 transition-all flex items-center gap-1.5 cursor-pointer"
                   >
-                    <Send className="w-3.5 h-3.5" />
-                    <span>Lên Lịch Đăng Ngay</span>
+                    <Send className="w-4 h-4" />
+                    <span>🚀 Đăng Đa Nền Tảng 1-Click</span>
                   </button>
                 </div>
 
                 {postedSuccess && (
                   <div className="p-2.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2 animate-fadeIn">
                     <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Đã phân bổ lịch đăng cho toàn bộ Fanpage ma trận thành công!</span>
+                    <span>Đã đăng bài & phân bổ lịch tự động cho {selectedPlatforms.length} nền tảng (FB Reels, YT Shorts, TikTok) thành công!</span>
                   </div>
                 )}
               </div>

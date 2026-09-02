@@ -58,6 +58,15 @@ export const LocalVoiceTool: React.FC = () => {
     }
   }, [terminalLogs]);
 
+  // IPC Event Listener Unmount Cleanup
+  useEffect(() => {
+    return () => {
+      if (typeof window !== "undefined" && (window as any).electronAPI?.removeRenderListeners) {
+        (window as any).electronAPI.removeRenderListeners();
+      }
+    };
+  }, []);
+
   // Audio Waveform Animation
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -131,7 +140,7 @@ export const LocalVoiceTool: React.FC = () => {
       });
 
       electronAPI.onRenderLog((logMsg: string) => {
-        setTerminalLogs(prev => [...prev, logMsg]);
+        setTerminalLogs(prev => [...prev, logMsg].slice(-200));
       });
 
       electronAPI.onRenderComplete((result: any) => {

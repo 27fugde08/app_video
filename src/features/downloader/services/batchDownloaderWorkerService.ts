@@ -11,7 +11,7 @@
 import { VideoDownloadItem, DownloaderConfig } from '../types';
 import { CancellationTokenSource, CancellationToken } from './CancellationToken';
 import { SemaphoreSlim } from './SemaphoreSlim';
-import { BACKEND_BASE_URL } from '../../../utils/apiClient';
+import { getApiUrl } from '../../../utils/apiClient';
 
 export interface ProgressPayload {
   jobId: string;
@@ -189,7 +189,7 @@ class BatchDownloaderWorkerService {
 
     // Send start signal to backend QueueManager if available
     try {
-      fetch(`${BACKEND_BASE_URL}/start`, {
+      fetch(getApiUrl('/api/downloader/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -249,7 +249,7 @@ class BatchDownloaderWorkerService {
       cts.cancel(reason);
       
       // Also notify backend to delete/kill process
-      fetch(`${BACKEND_BASE_URL}/job/${jobId}`, {
+      fetch(getApiUrl(`/api/downloader/job/${jobId}`), {
         method: 'DELETE'
       }).catch(() => {});
 

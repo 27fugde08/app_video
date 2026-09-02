@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   Folder, 
   FolderOpen, 
@@ -9,7 +9,8 @@ import {
   X, 
   Monitor, 
   Sparkles,
-  ArrowUp
+  ArrowUp,
+  FolderSearch
 } from 'lucide-react';
 import { soundSynth } from '../utils/audioUtils';
 
@@ -56,6 +57,7 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
   const [newFolderName, setNewFolderName] = useState<string>('');
   const [isCreatingFolder, setIsCreatingFolder] = useState<boolean>(false);
   const [customFoldersMap, setCustomFoldersMap] = useState<Record<string, string[]>>({});
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -121,22 +123,45 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
     handleOpenFolder(createdName);
   };
 
-  // Native Browser System Directory Picker Fallback
+  // Native Browser System Directory Picker
   const handleNativePicker = async () => {
+    soundSynth.playSfx('pop');
+    let pickerOpened = false;
     try {
-      soundSynth.playSfx('pop');
       if ('showDirectoryPicker' in window) {
         const handle = await (window as any).showDirectoryPicker();
         if (handle && handle.name) {
-          const path = `D:/Downloads/${handle.name}`;
+          const path = `${currentDrive}/Downloads/${handle.name}`;
           setSelectedPath(path);
           soundSynth.playSfx('success');
+          onSelectFolder(path);
+          onClose();
+          return;
         }
-      } else {
-        alert('Trình duyệt của bạn đang chạy trong môi trường Sandbox Sandbox. Bạn có thể sử dụng Giao diện Chọn Thư Mục Trực Quan bên dưới.');
+        pickerOpened = true;
       }
     } catch (err) {
-      console.log('Directory selection cancelled');
+      console.log('showDirectoryPicker unavailable or cancelled in iframe:', err);
+    }
+
+    // Direct OS File Explorer / Mac Finder picker fallback via HTML5 input
+    if (!pickerOpened && fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const relPath = files[0].webkitRelativePath;
+      if (relPath) {
+        const selectedFolderName = relPath.split('/')[0];
+        const fullPath = `${currentDrive}/Downloads/${selectedFolderName}`;
+        setSelectedPath(fullPath);
+        soundSynth.playSfx('success');
+        onSelectFolder(fullPath);
+        onClose();
+      }
     }
   };
 
@@ -175,6 +200,40 @@ export const FolderPickerModal: React.FC<FolderPickerModalProps> = ({
         </div>
 
         <div className="p-5 space-y-4 overflow-y-auto flex-1">
+          {/* Hidden HTML5 Folder Input for Direct Native OS Folder Picking */}
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileInputChange}
+            {...({ webkitdirectory: '', directory: '' } as any)}
+            className="hidden"
+          />
+
+          {/* Quick Direct Native Folder Picker Banner */}
+          <div className="p-3 bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-900 border border-indigo-700/50 rounded-xl flex items-center justify-between gap-3 text-white shadow-md">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-indigo-600/30 border border-indigo-500/40 rounded-lg text-indigo-400">
+                <FolderSearch className="w-5 h-5 text-indigo-300" />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                  Chọn Trực Tiếp Từ Máy Tính
+                </h4>
+                <p className="text-[11px] text-indigo-200/80">
+                  Bật cửa sổ Explorer / Finder chính thức của hệ điều hành để chọn thư mục
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleNativePicker}
+              className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold shadow-md shadow-indigo-600/30 transition-all cursor-pointer flex items-center gap-1.5 shrink-0 active:scale-95"
+            >
+              <FolderSearch className="w-3.5 h-3.5 text-indigo-200" />
+              <span>Mở Windows Explorer</span>
+            </button>
+          </div>
 
           {/* System Drive Selectors */}
           <div>

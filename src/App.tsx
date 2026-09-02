@@ -24,7 +24,7 @@ const TranslateVideoTool = lazy(() => import("./components/TranslateVideoTool").
 const SemiContentTool = lazy(() => import("./components/SemiContentTool").then(module => ({ default: module.SemiContentTool })));
 const LocalVoiceTool = lazy(() => import("./components/LocalVoiceTool").then(module => ({ default: module.LocalVoiceTool })));
 const SeoSuiteTool = lazy(() => import("./components/SeoSuiteTool").then(module => ({ default: module.SeoSuiteTool })));
-const BatchDownloaderPro = lazy(() => import("./features/downloader/BatchDownloaderPro").then(module => ({ default: module.BatchDownloaderPro })));
+const BatchDownloaderPro = lazy(() => import("./features/downloader/BatchDownloaderPro").then(module => ({ default: module.default || module.BatchDownloaderPro })));
 const DownloadedVideosTool = lazy(() => import("./components/DownloadedVideosTool").then(module => ({ default: module.DownloadedVideosTool })));
 const AccountManagerTool = lazy(() => import("./components/AccountManagerTool").then(module => ({ default: module.AccountManagerTool })));
 const ProxyManagerTool = lazy(() => import("./components/ProxyManagerTool").then(module => ({ default: module.ProxyManagerTool })));
@@ -65,6 +65,14 @@ export default function App() {
 
   useEffect(() => {
     fetchLicenseStatus();
+
+    const handleNav = (e: any) => {
+      if (e.detail) {
+        setActiveTab(e.detail as ActiveTab);
+      }
+    };
+    window.addEventListener("creatoros:navigate", handleNav);
+    return () => window.removeEventListener("creatoros:navigate", handleNav);
   }, []);
 
   const fetchLicenseStatus = async () => {
@@ -108,7 +116,7 @@ export default function App() {
       case "batch-downloader":
         return <BatchDownloaderPro />;
       case "downloaded-videos":
-        return <DownloadedVideosTool />;
+        return <DownloadedVideosTool onNavigateToTab={(tab) => setActiveTab(tab as ActiveTab)} />;
       case "account-manager":
         return <AccountManagerTool />;
       case "proxy-manager":

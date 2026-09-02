@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { soundSynth } from "../utils/audioUtils";
 import { useToast } from "../context/ToastContext";
+import { ipcClient } from "../core/ipc/ipcClient";
 
 export interface TiktokAccountItem {
   id: string;
@@ -239,13 +240,41 @@ export const TiktokPostTool: React.FC = () => {
   const [activeChromeCount, setActiveChromeCount] = useState<number>(0);
   const logTerminalRef = useRef<HTMLDivElement>(null);
 
-  // Modals
+  // Modals & AI Copy Generator
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState<boolean>(false);
   const [isVideoPickerModalOpen, setIsVideoPickerModalOpen] = useState<boolean>(false);
   const [isAddAccountModalOpen, setIsAddAccountModalOpen] = useState<boolean>(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState<boolean>(false);
+  const [aiTopicInput, setAiTopicInput] = useState<string>("Bí quyết làm video lồng tiếng AI triệu view 2026");
+  const [aiGenerating, setAiGenerating] = useState<boolean>(false);
+  const [generatedCopy, setGeneratedCopy] = useState<{ title: string; description: string; hashtags: string[]; generatedBy?: string } | null>(null);
+
   const [newUsername, setNewUsername] = useState<string>("");
   const [newDisplayName, setNewDisplayName] = useState<string>("");
   const [uploadHistory, setUploadHistory] = useState<UploadHistoryItem[]>(INITIAL_UPLOAD_HISTORY);
+
+  const handleGenerateAiCopy = async () => {
+    try {
+      setAiGenerating(true);
+      soundSynth.playSfx("pop");
+      const res = await ipcClient.invoke("/api/ai/generate-copy", "POST", {
+        title: aiTopicInput || "Video TikTok Viral",
+        platform: "tiktok",
+        tone: "viral"
+      });
+      if (res && res.success && res.data) {
+        setGeneratedCopy(res.data);
+        soundSynth.playSfx("success");
+        addToast("Đã tạo Caption & Hashtag Viral bằng Gemini AI!", "success");
+      } else {
+        throw new Error(res?.error || "Dịch vụ AI không phản hồi");
+      }
+    } catch (err: any) {
+      addToast(`Lỗi tạo nội dung AI: ${err?.message || "Không thể kết nối dịch vụ AI"}`, "error");
+    } finally {
+      setAiGenerating(false);
+    }
+  };
 
   // Auto scroll logs
   useEffect(() => {
@@ -880,25 +909,36 @@ export const TiktokPostTool: React.FC = () => {
               <label className="block text-[11px] text-slate-400 mb-1">
                 Sử dụng AI để làm mới nội dung
               </label>
-              <select
-                value={aiContentMode}
-                onChange={(e) => setAiContentMode(e.target.value)}
-                className="w-full sm:w-80 bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-pink-500 cursor-pointer"
-              >
-                <option value="none">Không</option>
-                <option value="gemini_viral">
-                  Gemini 2.5 Flash: Viết lại caption & tạo hashtag viral TikTok
-                </option>
-                <option value="hook_3s">
-                  Tạo câu Hook 3s giật gân tăng Retention Rate
-                </option>
-                <option value="translate_vi">
-                  Dịch thuật & Lồng tiếng việt tự nhiên
-                </option>
-                <option value="rewrite_genz">
-                  Viết lại caption chuẩn ngôn ngữ GenZ & Trend
-                </option>
-              </select>
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={aiContentMode}
+                  onChange={(e) => setAiContentMode(e.target.value)}
+                  className="w-full sm:w-80 bg-slate-900 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white outline-none focus:border-pink-500 cursor-pointer"
+                >
+                  <option value="none">Không</option>
+                  <option value="gemini_viral">
+                    Gemini 2.5 Flash: Viết lại caption & tạo hashtag viral TikTok
+                  </option>
+                  <option value="hook_3s">
+                    Tạo câu Hook 3s giật gân tăng Retention Rate
+                  </option>
+                  <option value="translate_vi">
+                    Dịch thuật & Lồng tiếng việt tự nhiên
+                  </option>
+                  <option value="rewrite_genz">
+                    Viết lại caption chuẩn ngôn ngữ GenZ & Trend
+                  </option>
+                </select>
+
+                <button
+                  onClick={() => setIsAiModalOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-pink-600/20 hover:bg-pink-600 text-pink-300 hover:text-white border border-pink-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  title="Tự động sinh Tiêu Đề, Caption & Hashtag Viral bằng Gemini AI"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                  <span>Tạo Caption & Hashtag AI</span>
+                </button>
+              </div>
             </div>
 
             {/* Chạy bằng: Dropdown (Matching Screenshot) */}
@@ -1364,6 +1404,97 @@ export const TiktokPostTool: React.FC = () => {
                   Lưu tài khoản
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: AI Copy & Hashtag Generator */}
+      {isAiModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-white/10 animate-in fade-in zoom-in-95 duration-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-pink-600/20 text-pink-400 flex items-center justify-center border border-pink-500/30">
+                  <Sparkles className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Trình Sinh Caption & Hashtag Viral AI</h3>
+                  <p className="text-[11px] text-slate-400">Kết nối trực tiếp Gemini 2.5 Flash API</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAiModalOpen(false)}
+                className="w-7 h-7 rounded-lg hover:bg-slate-800 flex items-center justify-center text-slate-400 font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="block text-slate-300 font-semibold mb-1">
+                  Chủ đề / Tiêu đề video gốc:
+                </label>
+                <input
+                  type="text"
+                  value={aiTopicInput}
+                  onChange={(e) => setAiTopicInput(e.target.value)}
+                  placeholder="Nhập chủ đề hoặc tiêu đề video..."
+                  className="w-full bg-slate-950 border border-white/10 rounded-lg p-2.5 text-xs text-white focus:border-pink-500 outline-none"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  onClick={handleGenerateAiCopy}
+                  disabled={aiGenerating}
+                  className="px-4 py-2 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-bold rounded-lg shadow-md transition-all cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>{aiGenerating ? "Đang tạo bằng Gemini AI..." : "Tạo Nội Dung Viral AI"}</span>
+                </button>
+              </div>
+
+              {generatedCopy && (
+                <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-pink-500/30 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono font-bold text-pink-400 uppercase">
+                      Kết quả AI ({generatedCopy.generatedBy || "Gemini Flash"})
+                    </span>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${generatedCopy.title}\n\n${generatedCopy.description}`);
+                        soundSynth.playSfx("pop");
+                        addToast("Đã sao chép nội dung AI vào clipboard!", "info");
+                      }}
+                      className="text-[10px] text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer"
+                    >
+                      <Copy className="w-3 h-3 text-pink-400" />
+                      <span>Sao chép</span>
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400">Tiêu đề Gợi ý:</label>
+                    <p className="text-xs font-bold text-white">{generatedCopy.title}</p>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] text-slate-400">Caption & Hashtags:</label>
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">{generatedCopy.description}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end pt-2 border-t border-white/10">
+              <button
+                onClick={() => setIsAiModalOpen(false)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg cursor-pointer"
+              >
+                Đóng
+              </button>
             </div>
           </div>
         </div>

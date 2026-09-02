@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Link2,
   Play,
@@ -8,7 +8,11 @@ import {
   Sparkles,
   RefreshCw,
   Layers,
-  FileText
+  FileText,
+  Upload,
+  Mic,
+  Zap,
+  FolderSearch
 } from "lucide-react";
 import { soundSynth } from "../../../utils/audioUtils";
 
@@ -20,8 +24,11 @@ interface UrlInputCardProps {
   isDownloading: boolean;
   selectedCount: number;
   totalQueueCount: number;
+  saveDirectory?: string;
+  onOpenFolderPicker?: () => void;
   onStartScan: () => void;
   onDownloadSelected: () => void;
+  onDownloadAndDubPipeline?: () => void;
   onClearQueue: () => void;
 }
 
@@ -33,10 +40,15 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
   isDownloading,
   selectedCount,
   totalQueueCount,
+  saveDirectory,
+  onOpenFolderPicker,
   onStartScan,
   onDownloadSelected,
+  onDownloadAndDubPipeline,
   onClearQueue
 }) => {
+  const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
+
   const handlePasteClipboard = async () => {
     try {
       const text = await navigator.clipboard.readText();
@@ -60,8 +72,67 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
     soundSynth.playSfx("pop");
   };
 
+  const handleFileDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDraggingFile(false);
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.name.endsWith(".txt") || file.name.endsWith(".csv") || file.type.includes("text")) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const content = event.target?.result as string;
+          if (content) {
+            setRawUrlInput(rawUrlInput ? `${rawUrlInput}\n${content}` : content);
+            soundSynth.playSfx("success");
+          }
+        };
+        reader.readAsText(file);
+      }
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const content = event.target?.result as string;
+        if (content) {
+          setRawUrlInput(rawUrlInput ? `${rawUrlInput}\n${content}` : content);
+          soundSynth.playSfx("success");
+        }
+      };
+      reader.readAsText(file);
+    }
+  };
+
   return (
     <div className="obsidian-card rounded-2xl p-4 sm:p-5 border border-white/[0.08] space-y-3.5 shadow-2xl">
+      {/* Save Folder Quick Access Banner */}
+      {saveDirectory && (
+        <div className="p-2.5 bg-cyan-950/30 border border-cyan-500/20 rounded-xl flex items-center justify-between text-xs text-cyan-200 gap-2">
+          <div className="flex items-center gap-2 truncate">
+            <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 font-bold text-[10px] shrink-0">Thư Mục Lưu Tệp</span>
+            <span className="font-mono text-cyan-100 truncate">{saveDirectory}</span>
+          </div>
+          {onOpenFolderPicker && (
+            <button
+              type="button"
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                onOpenFolderPicker();
+              }}
+              className="px-3 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold text-[11px] flex items-center gap-1 shrink-0 cursor-pointer shadow transition-all active:scale-95"
+            >
+              <FolderSearch className="w-3.5 h-3.5 text-cyan-100" />
+              <span>Đổi Thư Mục OS</span>
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Header of Input Card */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2.5">
@@ -73,13 +144,19 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
               Danh sách URL video cần quét
             </h3>
             <p className="text-[11px] text-slate-400">
-              Mỗi dòng một liên kết (Hỗ trợ TikTok, Douyin, Facebook Reels, YouTube Shorts/Videos)
+              Mỗi dòng một liên kết (Dán URL hoặc Kéo Thả File .TXT/.CSV vào khung bên dưới)
             </p>
           </div>
         </div>
 
         {/* Quick helper buttons */}
         <div className="flex items-center gap-2">
+          <label className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm">
+            <Upload className="w-3 h-3 text-emerald-400" />
+            <span className="hidden sm:inline">Nạp File .TXT</span>
+            <input type="file" accept=".txt,.csv" onChange={handleFileInputChange} className="hidden" />
+          </label>
+
           <button
             onClick={handlePasteClipboard}
             className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
@@ -112,20 +189,39 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
         </div>
       </div>
 
-      {/* Multi-line URL Textarea */}
-      <div className="relative">
+      {/* Multi-line URL Textarea with Drag & Drop */}
+      <div 
+        className="relative"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDraggingFile(true);
+        }}
+        onDragLeave={() => setIsDraggingFile(false)}
+        onDrop={handleFileDrop}
+      >
         <textarea
           value={rawUrlInput}
           onChange={(e) => setRawUrlInput(e.target.value)}
-          placeholder={`Dán danh sách liên kết vào đây (mỗi link 1 dòng)...
+          placeholder={`Dán danh sách liên kết vào đây (hoặc kéo thả tệp .TXT/.CSV trực tiếp vào đây)...
 Ví dụ:
 https://www.tiktok.com/@creator/video/730372860995515653
 https://www.douyin.com/video/7345678912345678901
 https://www.facebook.com/reel/1423859201582910
 https://www.youtube.com/shorts/3fM4pU8qW4Y`}
           rows={4}
-          className="w-full bg-[#05070d]/95 border border-white/10 rounded-xl p-3.5 text-xs font-mono text-slate-200 placeholder-slate-500 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30 outline-none transition-all resize-y min-h-[95px] shadow-inner"
+          className={`w-full bg-[#05070d]/95 border rounded-xl p-3.5 text-xs font-mono text-slate-200 placeholder-slate-500 outline-none transition-all resize-y min-h-[95px] shadow-inner ${
+            isDraggingFile
+              ? "border-cyan-400 ring-2 ring-cyan-400/50 bg-cyan-950/40"
+              : "border-white/10 focus:border-cyan-500/60 focus:ring-1 focus:ring-cyan-500/30"
+          }`}
         />
+
+        {isDraggingFile && (
+          <div className="absolute inset-0 bg-cyan-950/80 border-2 border-dashed border-cyan-400 rounded-xl flex items-center justify-center gap-2 text-cyan-200 font-bold text-xs pointer-events-none z-10">
+            <Upload className="w-5 h-5 animate-bounce text-cyan-400" />
+            <span>Thả tệp .TXT / .CSV vào đây để tự động nạp danh sách URL</span>
+          </div>
+        )}
 
         {/* Counter Badge */}
         <div className="absolute bottom-3 right-3 px-2.5 py-0.5 rounded-md bg-[#0a0d16]/95 border border-white/15 text-[10px] font-mono text-cyan-300 shadow-md">
@@ -135,7 +231,7 @@ https://www.youtube.com/shorts/3fM4pU8qW4Y`}
 
       {/* Action Buttons Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2.5 flex-wrap">
           {/* Button 1: Bắt đầu quét */}
           <button
             onClick={onStartScan}
@@ -178,9 +274,26 @@ https://www.youtube.com/shorts/3fM4pU8qW4Y`}
               {isDownloading ? "Đang tải video..." : selectedCount > 0 ? `Tải đã chọn (${selectedCount})` : "Tải tất cả hàng đợi"}
             </span>
           </button>
+
+          {/* Button 3: 1-Click Pipeline: Tải & Tự Động Nạp Sang Dịch Lồng Tiếng AI */}
+          {onDownloadAndDubPipeline && (
+            <button
+              onClick={onDownloadAndDubPipeline}
+              disabled={isDownloading || totalQueueCount === 0}
+              className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-lg ${
+                isDownloading || totalQueueCount === 0
+                  ? "bg-slate-800/80 text-slate-500 cursor-not-allowed border border-white/5"
+                  : "bg-gradient-to-r from-amber-500 via-rose-600 to-purple-600 hover:from-amber-400 hover:to-purple-500 text-white border border-amber-400/40 glow-purple active:scale-95"
+              }`}
+              title="Tải video và nạp thẳng sang Studio Dịch Lồng Tiếng AI trong 1 bước"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+              <span>⚡ Tải & Nạp Sang Lồng Tiếng AI</span>
+            </button>
+          )}
         </div>
 
-        {/* Button 3: Xóa hàng đợi */}
+        {/* Button 4: Xóa hàng đợi */}
         <button
           onClick={onClearQueue}
           disabled={totalQueueCount === 0 || isDownloading}
@@ -197,3 +310,4 @@ https://www.youtube.com/shorts/3fM4pU8qW4Y`}
     </div>
   );
 };
+

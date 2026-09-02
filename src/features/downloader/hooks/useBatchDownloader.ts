@@ -28,86 +28,14 @@ const DEFAULT_CONFIG: DownloaderConfig = {
   format: "both"
 };
 
-const INITIAL_QUEUE_ITEMS: VideoDownloadItem[] = [
-  {
-    id: "JOB-1001-douyin",
-    url: "https://www.douyin.com/video/7345678912345678901",
-    platform: "douyin",
-    title: "【科幻震撼】深空拾光：探索未知星系与虫洞穿梭之谜",
-    author: "深空拾光官方",
-    thumbnail: "https://images.unsplash.com/photo-1506703719100-a0f3a48c0f86?w=400&h=225&fit=crop",
-    duration: "00:48",
-    durationSec: 48,
-    resolution: "1080x1920 (9:16)",
-    fileSize: "48.2 MB",
-    fileSizeBytes: 50541363,
-    progress: 100,
-    status: "completed",
-    speed: "0 MB/s",
-    eta: "0s",
-    hasWatermarkRemoved: true,
-    hasAudioExtracted: true,
-    filePath: "D:\\Downloads\\CreatorOS\\BatchVault\\7345678912345678901.mp4",
-    audioPath: "D:\\Downloads\\CreatorOS\\BatchVault\\7345678912345678901.mp3",
-    views: 890000,
-    likes: 124000,
-    createdAt: "01/09/2026 14:20"
-  },
-  {
-    id: "JOB-1002-tiktok",
-    url: "https://www.tiktok.com/@voicepro/video/730372860995515653",
-    platform: "tiktok",
-    title: "Top 5 Voice acting trends in animation movie 2026 #dubbing #voiceover",
-    author: "VoicePro Studio",
-    thumbnail: "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=400&h=225&fit=crop",
-    duration: "00:54",
-    durationSec: 54,
-    resolution: "1080x1920 (9:16)",
-    fileSize: "41.5 MB",
-    fileSizeBytes: 43515904,
-    progress: 100,
-    status: "completed",
-    speed: "0 MB/s",
-    eta: "0s",
-    hasWatermarkRemoved: true,
-    hasAudioExtracted: true,
-    filePath: "D:\\Downloads\\CreatorOS\\BatchVault\\730372860995515653.mp4",
-    audioPath: "D:\\Downloads\\CreatorOS\\BatchVault\\730372860995515653.mp3",
-    views: 450000,
-    likes: 67000,
-    createdAt: "01/09/2026 14:21"
-  },
-  {
-    id: "JOB-1003-youtube",
-    url: "https://www.youtube.com/shorts/3fM4pU8qW4Y",
-    platform: "youtube",
-    title: "Mastering Voice Dubbing & AI Speech Synthesis Full Guide",
-    author: "SoundMastery HQ",
-    thumbnail: "https://images.unsplash.com/photo-1516280440614-37939bbacd81?w=400&h=225&fit=crop",
-    duration: "03:20",
-    durationSec: 200,
-    resolution: "1920x1080 (16:9)",
-    fileSize: "88.0 MB",
-    fileSizeBytes: 92274688,
-    progress: 0,
-    status: "queued",
-    speed: "0 MB/s",
-    eta: "--",
-    hasWatermarkRemoved: true,
-    hasAudioExtracted: true,
-    filePath: "D:\\Downloads\\CreatorOS\\BatchVault\\3fM4pU8qW4Y.mp4",
-    views: 320000,
-    likes: 42000,
-    createdAt: "01/09/2026 14:22"
-  }
-];
+const INITIAL_QUEUE_ITEMS: VideoDownloadItem[] = [];
 
 export function useBatchDownloader() {
   const { addToast } = useToast();
 
   const [rawUrlInput, setRawUrlInput] = useState<string>("");
   const [items, setItems] = useState<VideoDownloadItem[]>(INITIAL_QUEUE_ITEMS);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set(["JOB-1003-youtube"]));
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [config, setConfig] = useState<DownloaderConfig>(DEFAULT_CONFIG);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [isDownloading, setIsDownloading] = useState<boolean>(false);

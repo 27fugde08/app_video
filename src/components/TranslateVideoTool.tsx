@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
+import { FolderPickerModal } from "./FolderPickerModal";
 import {
   Volume2,
   Play,
@@ -31,11 +32,19 @@ import {
   ShieldCheck,
   Pause,
   RefreshCw,
-  X
+  Globe,
+  X,
+  Split,
+  FolderSearch,
+  VolumeX,
+  Maximize2,
+  FileText
 } from "lucide-react";
 import { soundSynth } from "../utils/audioUtils";
 import { useToast } from "../context/ToastContext";
 import { useQueue } from "../context/QueueContext";
+import { dubbingService } from "../features/dubbing/services/dubbingService";
+import { ipcClient } from "../core/ipc/ipcClient";
 
 interface FolderVideoItem {
   id: string;
@@ -156,9 +165,21 @@ export const TranslateVideoTool: React.FC = () => {
   const { addToast } = useToast();
   const { addTask } = useQueue();
 
+  // Sub-Module Tabs State
+  const [activeSubTab, setActiveSubTab] = useState<"queue" | "dual" | "subtitles">("queue");
+
   // Top Bar Options
   const [skipCompleted, setSkipCompleted] = useState<boolean>(true);
-  const [savePath, setSavePath] = useState<string>("Mặc định (AppData)");
+  const [savePath, setSavePath] = useState<string>("D:\\Downloads\\CreatorOS\\Dubbed_Output");
+  const [isFolderPickerOpen, setIsFolderPickerOpen] = useState<boolean>(false);
+
+  // Dual Preview Side-by-Side Modal State
+  const [isDualPreviewOpen, setIsDualPreviewOpen] = useState<boolean>(false);
+  const [activeDualVideo, setActiveDualVideo] = useState<{ title: string; folderName: string; duration: string; origPath: string } | null>(null);
+  const [isDualPlaying, setIsDualPlaying] = useState<boolean>(false);
+  const [dualPlaybackSpeed, setDualPlaybackSpeed] = useState<number>(1);
+  const [origVolume, setOrigVolume] = useState<number>(20);
+  const [dubbedVolume, setDubbedVolume] = useState<number>(100);
 
   // Folder & Video selection
   const [folders, setFolders] = useState<FolderVideoItem[]>(INITIAL_FOLDERS);
@@ -211,6 +232,8 @@ export const TranslateVideoTool: React.FC = () => {
 
   // Voice Settings
   const [targetLanguage, setTargetLanguage] = useState<string>("vi");
+  const [isMultiLangMode, setIsMultiLangMode] = useState<boolean>(false);
+  const [multiTargetLangs, setMultiTargetLangs] = useState<string[]>(["vi", "en"]);
   const [voiceSearchQuery, setVoiceSearchQuery] = useState<string>("");
   const [genderFilter, setGenderFilter] = useState<"all" | "Nam" | "Nữ">("all");
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>("manh_dung");
@@ -253,6 +276,45 @@ export const TranslateVideoTool: React.FC = () => {
     return active ? 1 : 0;
   }, [folders, selectedFolderId]);
 
+  // SSE Real-time Dubbing Progress Listener
+  useEffect(() => {
+    const unsubProgress = ipcClient.on("dubbing_progress", (data: any) => {
+      if (data && data.id) {
+        setQueueList((prev) =>
+          prev.map((item) => {
+            if (item.id === data.id || item.id === `queue_${data.id}`) {
+              return {
+                ...item,
+                progress: Math.min(100, Math.round(data.progress || item.progress)),
+                status: data.progress >= 100 ? "completed" : "processing"
+              };
+            }
+            return item;
+          })
+        );
+      }
+    });
+
+    const unsubCompleted = ipcClient.on("dubbing_completed", (data: any) => {
+      if (data && data.id) {
+        setQueueList((prev) => {
+          const target = prev.find((i) => i.id === data.id || i.id === `queue_${data.id}`);
+          if (target) {
+            setHistoryList((h) => [{ ...target, progress: 100, status: "completed" }, ...h]);
+          }
+          return prev.filter((i) => i.id !== data.id && i.id !== `queue_${data.id}`);
+        });
+        soundSynth.playSfx("success");
+        addToast(`Lồng tiếng AI hoàn tất: "${data.title || 'Video'}"`, "success");
+      }
+    });
+
+    return () => {
+      unsubProgress();
+      unsubCompleted();
+    };
+  }, [addToast]);
+
   // Actions
   const handleSelectFolder = (folder: FolderVideoItem) => {
     setSelectedFolderId(folder.id);
@@ -267,7 +329,7 @@ export const TranslateVideoTool: React.FC = () => {
     soundSynth.playSfx("pop");
   };
 
-  const handleStartProcessing = () => {
+  const handleStartProcessing = async () => {
     const currentFolder = folders.find((f) => f.id === selectedFolderId);
     if (!currentFolder) {
       soundSynth.playSfx("pop");
@@ -278,54 +340,94 @@ export const TranslateVideoTool: React.FC = () => {
     const firstVid = currentFolder.videos[0] || {
       id: `vid_${Date.now()}`,
       title: `${currentFolder.folderName}_Clip_01.mp4`,
-      duration: "00:48"
+      duration: "00:48",
+      filePath: ""
     };
 
-    const newItem: DubbingQueueItem = {
-      id: `queue_${Date.now()}`,
-      stt: queueList.length + 1,
-      videoTitle: firstVid.title,
-      folderName: currentFolder.folderName,
-      startTime: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
-      status: "processing",
-      progress: 15,
-      targetLang: targetLanguage === "vi" ? "Tiếng Việt" : targetLanguage,
-      voice: VOICES_LIST.find((v) => v.id === selectedVoiceId)?.name || "Mạnh Dũng"
+    const targetLangsToProcess = isMultiLangMode ? multiTargetLangs : [targetLanguage];
+
+    const getLangLabel = (code: string) => {
+      switch (code) {
+        case "vi": return "Tiếng Việt";
+        case "en": return "Tiếng Anh (US)";
+        case "zh": return "Tiếng Trung (CN)";
+        case "ja": return "Tiếng Nhật (JP)";
+        case "ko": return "Tiếng Hàn (KR)";
+        default: return code;
+      }
     };
 
-    setQueueList((prev) => [newItem, ...prev]);
-    soundSynth.playSfx("success");
-    addToast(`Đã thêm "${newItem.videoTitle}" vào hàng đợi lồng tiếng AI!`, "success");
+    const getMatchingVoice = (code: string) => {
+      if (code === targetLanguage) {
+        const voiceObj = VOICES_LIST.find((v) => v.id === selectedVoiceId);
+        if (voiceObj) return voiceObj.name;
+      }
+      switch (code) {
+        case "en": return "Guy Neural (US English)";
+        case "zh": return "Xiaoxiao Neural (CN Chinese)";
+        case "ja": return "Nanami Neural (JP Japanese)";
+        case "ko": return "Sun-Hi Neural (KR Korean)";
+        default: return "Mạnh Dũng";
+      }
+    };
 
-    addTask({
-      title: `Lồng tiếng AI: ${newItem.videoTitle}`,
-      type: "render",
-      status: "running",
-      progress: 25
-    });
+    for (let i = 0; i < targetLangsToProcess.length; i++) {
+      const langCode = targetLangsToProcess[i];
+      const langLabel = getLangLabel(langCode);
+      const voiceName = getMatchingVoice(langCode);
 
-    // Simulate progress
-    const interval = setInterval(() => {
-      setQueueList((prev) =>
-        prev.map((item) => {
-          if (item.id === newItem.id) {
-            const nextProg = item.progress + 25;
-            if (nextProg >= 100) {
-              clearInterval(interval);
-              setHistoryList((h) => [
-                { ...item, progress: 100, status: "completed" },
-                ...h
-              ]);
-              soundSynth.playSfx("success");
-              addToast(`Lồng tiếng hoàn tất cho video "${item.videoTitle}"!`, "success");
-              return { ...item, progress: 100, status: "completed" };
+      const newItem: DubbingQueueItem = {
+        id: `queue_${Date.now()}_${langCode}`,
+        stt: queueList.length + i + 1,
+        videoTitle: `[${langCode.toUpperCase()}] ${firstVid.title}`,
+        folderName: currentFolder.folderName,
+        startTime: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+        status: "processing",
+        progress: 15,
+        targetLang: langLabel,
+        voice: voiceName
+      };
+
+      setQueueList((prev) => [newItem, ...prev]);
+
+      addTask({
+        title: `Lồng tiếng AI [${langCode.toUpperCase()}]: ${firstVid.title}`,
+        type: "render",
+        status: "running",
+        progress: 20
+      });
+
+      // Simulation interval per lang item
+      const interval = setInterval(() => {
+        setQueueList((prev) =>
+          prev.map((item) => {
+            if (item.id === newItem.id) {
+              const nextProg = item.progress + 20;
+              if (nextProg >= 100) {
+                clearInterval(interval);
+                setHistoryList((h) => [
+                  { ...item, progress: 100, status: "completed" },
+                  ...h
+                ]);
+                soundSynth.playSfx("success");
+                addToast(`Lồng tiếng hoàn tất [${langLabel}] cho video "${firstVid.title}"!`, "success");
+                return { ...item, progress: 100, status: "completed" };
+              }
+              return { ...item, progress: nextProg };
             }
-            return { ...item, progress: nextProg };
-          }
-          return item;
-        })
-      );
-    }, 2000);
+            return item;
+          })
+        );
+      }, 2000 + i * 500);
+    }
+
+    soundSynth.playSfx("success");
+    addToast(
+      isMultiLangMode
+        ? `Đã nạp thành công ${targetLangsToProcess.length} tác vụ lồng tiếng Đa Ngôn Ngữ!`
+        : `Đã nạp "${firstVid.title}" vào hàng đợi lồng tiếng AI!`,
+      "success"
+    );
   };
 
   const handleTestVoiceSample = (voiceId: string) => {
@@ -379,11 +481,19 @@ export const TranslateVideoTool: React.FC = () => {
               <span className="font-medium">Bỏ qua video đã hoàn thành</span>
             </div>
 
-            {/* Save Location Button */}
-            <div className="flex items-center gap-1.5 text-xs text-rose-300 bg-rose-500/10 border border-rose-400/40 px-3 py-1.5 rounded-lg">
-              <Folder className="w-3.5 h-3.5 text-rose-400" />
-              <span>Lưu tại: <strong className="font-mono text-white">{savePath}</strong></span>
-            </div>
+            {/* Save Location Button with OS Picker */}
+            <button
+              type="button"
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                setIsFolderPickerOpen(true);
+              }}
+              className="flex items-center gap-1.5 text-xs text-cyan-200 bg-cyan-950/60 hover:bg-cyan-900/80 border border-cyan-500/40 px-3 py-1.5 rounded-lg transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Click để đổi thư mục xuất video trực tiếp trên máy tính"
+            >
+              <FolderSearch className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Đường dẫn xuất OS: <strong className="font-mono text-white">{savePath}</strong></span>
+            </button>
 
             {/* Action Button: + Bắt đầu xử lý nha */}
             <button
@@ -396,6 +506,116 @@ export const TranslateVideoTool: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Sub-Tabs Navigation for Dubbing Studio */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
+        <button
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            setActiveSubTab("queue");
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeSubTab === "queue"
+              ? "bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Mic className="w-4 h-4" />
+          <span>1. Hàng Đợi & Lồng Tiếng AI</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            setActiveDualVideo({
+              title: "Demo_Video_Dubbed_01.mp4",
+              folderName: "Douyin_Viral_Hot",
+              duration: "02:15",
+              origPath: "D:\\Downloads\\CreatorOS\\Douyin_Viral_Hot\\Demo_Video_Dubbed_01.mp4"
+            });
+            setIsDualPreviewOpen(true);
+          }}
+          className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer text-slate-400 hover:text-white hover:bg-slate-800"
+        >
+          <Split className="w-4 h-4 text-cyan-400" />
+          <span>2. Dual Preview So Sánh Song Song</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            setActiveSubTab("subtitles");
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeSubTab === "subtitles"
+              ? "bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-lg shadow-rose-600/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>3. Trình Chỉnh Sửa Phụ Đề & Script SRT</span>
+        </button>
+      </div>
+
+      {activeSubTab === "subtitles" && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center">
+                <FileText className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Subtitle Studio & AI Script Re-writer</h3>
+                <p className="text-xs text-slate-400">Chỉnh sửa trực tiếp từng mốc thời gian Timeline & lời dịch trước khi Render ghép vào video</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                soundSynth.playSfx("success");
+                addToast("Đã xuất tệp phụ đè tiếng Việt (Vi.srt) thành công!", "success");
+              }}
+              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Xuất Tệp SRT</span>
+            </button>
+          </div>
+
+          {/* Subtitle Editor Table */}
+          <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950">
+            <table className="w-full text-left text-xs text-slate-300">
+              <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase font-mono">
+                <tr>
+                  <th className="py-2.5 px-3 w-12 text-center">#</th>
+                  <th className="py-2.5 px-3 w-32">Mốc Thời Gian</th>
+                  <th className="py-2.5 px-3">Lời Thoại Gốc (Tiếng Trung)</th>
+                  <th className="py-2.5 px-3">Lời Dịch AI Lồng Tiếng (Tiếng Việt)</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800 font-mono">
+                {[
+                  { stt: 1, time: "00:00 - 00:04", orig: "探索未知星系，感受宇宙浩瀚...", trans: "Khám phá các thiên hà chưa biết, cảm nhận sự bao la..." },
+                  { stt: 2, time: "00:05 - 00:09", orig: "每一次突破, 都是人类智慧的飞跃。", trans: "Mỗi một bước đột phá đều là sự vọt tiến của trí tuệ loài người." },
+                  { stt: 3, time: "00:10 - 00:15", orig: "欢迎来到 AI Creator OS 时代！", trans: "Chào mừng bạn đến với kỷ nguyên AI Creator OS!" }
+                ].map((row) => (
+                  <tr key={row.stt} className="hover:bg-slate-900/60">
+                    <td className="py-2.5 px-3 text-center text-slate-500">{row.stt}</td>
+                    <td className="py-2.5 px-3 text-cyan-400 font-bold">{row.time}</td>
+                    <td className="py-2.5 px-3 text-slate-400">{row.orig}</td>
+                    <td className="py-2.5 px-3">
+                      <input
+                        type="text"
+                        defaultValue={row.trans}
+                        className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-white focus:border-rose-500 outline-none"
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* 2. Main 2-Column Split View */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
@@ -575,15 +795,34 @@ export const TranslateVideoTool: React.FC = () => {
                           </span>
                         </td>
                         <td className="py-3 px-3 text-center">
-                          <button
-                            onClick={() => {
-                              soundSynth.playSfx("pop");
-                              addToast(`Mở tệp lồng tiếng: ${item.videoTitle}`, "info");
-                            }}
-                            className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-bold"
-                          >
-                            Xem Video
-                          </button>
+                          <div className="flex items-center justify-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                soundSynth.playSfx("pop");
+                                addToast(`Mở tệp lồng tiếng: ${item.videoTitle}`, "info");
+                              }}
+                              className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 rounded text-[10px] font-bold cursor-pointer"
+                            >
+                              Xem Video
+                            </button>
+                            <button
+                              onClick={() => {
+                                soundSynth.playSfx("cash");
+                                setActiveDualVideo({
+                                  title: item.videoTitle,
+                                  folderName: item.folderName,
+                                  duration: "02:15",
+                                  origPath: `D:\\Downloads\\CreatorOS\\${item.folderName}\\${item.videoTitle}`
+                                });
+                                setIsDualPreviewOpen(true);
+                              }}
+                              className="px-2 py-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded text-[10px] font-bold flex items-center gap-1 cursor-pointer shadow"
+                              title="Trình phát so sánh song song Video Gốc & Video AI Dubbed"
+                            >
+                              <Split className="w-3 h-3 text-indigo-200" />
+                              <span>Dual View</span>
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))
@@ -802,29 +1041,142 @@ export const TranslateVideoTool: React.FC = () => {
 
             {isVoiceSettingsOpen && (
               <div className="p-4 space-y-4 text-xs">
-                {/* Ngôn ngữ dịch */}
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1 text-[11px]">
-                    Ngôn ngữ dịch
-                  </label>
-                  <div className="relative">
-                    <select
-                      value={targetLanguage}
-                      onChange={(e) => setTargetLanguage(e.target.value)}
-                      className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:border-rose-500 outline-none appearance-none cursor-pointer pr-8"
-                    >
-                      <option value="vi">VN Tiếng Việt</option>
-                      <option value="en">US Tiếng Anh (English)</option>
-                      <option value="zh">CN Tiếng Trung (Mandarin)</option>
-                      <option value="ja">JP Tiếng Nhật (Japanese)</option>
-                      <option value="ko">KR Tiếng Hàn (Korean)</option>
-                    </select>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
-                      ▼
+                {/* Mode Toggle: Single Language vs Multi-Language Batch */}
+                <div className="flex items-center justify-between p-2.5 rounded-xl bg-slate-950/80 border border-indigo-500/30">
+                  <div className="flex items-center gap-2">
+                    <Globe className="w-4 h-4 text-indigo-400" />
+                    <div>
+                      <div className="font-bold text-white text-[11px]">Lồng Tiếng Đa Ngôn Ngữ Hàng Loạt</div>
+                      <div className="text-[10px] text-slate-400">Xuất đồng thời video sang nhiều tiếng</div>
                     </div>
                   </div>
-                  <p className="text-[10px] text-slate-500 mt-1">Ngôn ngữ mà video sẽ được lồng tiếng</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMultiLangMode(!isMultiLangMode);
+                      soundSynth.playSfx("pop");
+                    }}
+                    className={`px-3 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                      isMultiLangMode
+                        ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/40"
+                        : "bg-slate-800 text-slate-300 hover:text-white"
+                    }`}
+                  >
+                    {isMultiLangMode ? "BẬT Multi-Lang" : "TẮT (Đơn ngữ)"}
+                  </button>
                 </div>
+
+                {/* 1-Click Flag Language & Voice Presets */}
+                <div className="space-y-1.5">
+                  <label className="block text-slate-300 font-bold text-[11px]">
+                    ⚡ Chọn Nhanh Ngôn Ngữ & Giọng Đọc Mẫu (1-Click Preset)
+                  </label>
+                  <div className="grid grid-cols-5 gap-1.5">
+                    {[
+                      { code: "vi", flag: "🇻🇳", name: "Việt", voiceId: "manh_dung", voiceName: "Mạnh Dũng" },
+                      { code: "en", flag: "🇺🇸", name: "Anh", voiceId: "calm_woman", voiceName: "Guy US" },
+                      { code: "zh", flag: "🇨🇳", name: "Trung", voiceId: "chieu_thanh", voiceName: "Xiaoxiao" },
+                      { code: "ja", flag: "🇯🇵", name: "Nhật", voiceId: "lac_phi", voiceName: "Nanami" },
+                      { code: "ko", flag: "🇰🇷", name: "Hàn", voiceId: "ngoc_huyen", voiceName: "SunHi" }
+                    ].map((preset) => {
+                      const isActive = targetLanguage === preset.code;
+                      return (
+                        <button
+                          key={preset.code}
+                          type="button"
+                          onClick={() => {
+                            setTargetLanguage(preset.code);
+                            setSelectedVoiceId(preset.voiceId);
+                            soundSynth.playSfx("pop");
+                            addToast(`Đã nạp 1-Click Preset: ${preset.flag} ${preset.name} (${preset.voiceName})`, "success");
+                          }}
+                          className={`p-2 rounded-xl border flex flex-col items-center justify-center transition-all cursor-pointer text-center ${
+                            isActive
+                              ? "bg-rose-950/60 border-rose-500 text-white ring-2 ring-rose-500/30 shadow-md scale-[1.02]"
+                              : "bg-slate-950/80 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-white"
+                          }`}
+                        >
+                          <span className="text-lg">{preset.flag}</span>
+                          <span className="text-[10px] font-bold mt-0.5">{preset.name}</span>
+                          <span className="text-[9px] text-slate-400 truncate w-full">{preset.voiceName}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Ngôn ngữ dịch */}
+                {isMultiLangMode ? (
+                  <div className="space-y-2 p-2.5 rounded-xl bg-slate-950 border border-slate-800">
+                    <label className="block text-slate-300 font-bold text-[11px]">
+                      Chọn các ngôn ngữ xuất ra đồng thời:
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[
+                        { id: "vi", label: "VN Tiếng Việt" },
+                        { id: "en", label: "US Tiếng Anh" },
+                        { id: "zh", label: "CN Tiếng Trung" },
+                        { id: "ja", label: "JP Tiếng Nhật" },
+                        { id: "ko", label: "KR Tiếng Hàn" }
+                      ].map((lang) => {
+                        const checked = multiTargetLangs.includes(lang.id);
+                        return (
+                          <label
+                            key={lang.id}
+                            className={`flex items-center gap-2 p-1.5 rounded-lg border cursor-pointer transition-colors ${
+                              checked
+                                ? "bg-indigo-950/40 border-indigo-500/60 text-white font-semibold"
+                                : "bg-slate-900 border-slate-800 text-slate-400"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                soundSynth.playSfx("pop");
+                                if (checked) {
+                                  if (multiTargetLangs.length > 1) {
+                                    setMultiTargetLangs(multiTargetLangs.filter((l) => l !== lang.id));
+                                  }
+                                } else {
+                                  setMultiTargetLangs([...multiTargetLangs, lang.id]);
+                                }
+                              }}
+                              className="rounded border-slate-700 text-indigo-500 focus:ring-0"
+                            />
+                            <span className="text-[11px]">{lang.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                    <p className="text-[10px] text-indigo-300/80 mt-1">
+                      💡 Khi ấn "Bắt đầu xử lý", hệ thống sẽ tự nạp {multiTargetLangs.length} công việc lồng tiếng tương ứng với từng ngôn ngữ.
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <label className="block text-slate-400 font-semibold mb-1 text-[11px]">
+                      Ngôn ngữ dịch
+                    </label>
+                    <div className="relative">
+                      <select
+                        value={targetLanguage}
+                        onChange={(e) => setTargetLanguage(e.target.value)}
+                        className="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-3 py-2 text-xs text-white focus:border-rose-500 outline-none appearance-none cursor-pointer pr-8"
+                      >
+                        <option value="vi">VN Tiếng Việt</option>
+                        <option value="en">US Tiếng Anh (English)</option>
+                        <option value="zh">CN Tiếng Trung (Mandarin)</option>
+                        <option value="ja">JP Tiếng Nhật (Japanese)</option>
+                        <option value="ko">KR Tiếng Hàn (Korean)</option>
+                      </select>
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 text-xs">
+                        ▼
+                      </div>
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">Ngôn ngữ mà video sẽ được lồng tiếng</p>
+                  </div>
+                )}
 
                 {/* Voice Search & Gender Filter */}
                 <div className="flex items-center gap-2">
@@ -1030,6 +1382,201 @@ export const TranslateVideoTool: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Side-by-Side Dual Preview Modal (Original vs AI Dubbed Video) */}
+      {isDualPreviewOpen && activeDualVideo && (
+        <div className="fixed inset-0 z-50 bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-6xl bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl flex flex-col max-h-[92vh]">
+            {/* Header */}
+            <div className="px-5 py-3.5 bg-slate-950 border-b border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white font-bold">
+                  <Split className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>Trình Phát So Sánh Song Song Dual Preview</span>
+                    <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[10px] font-mono">
+                      SYNC 60FPS
+                    </span>
+                  </h3>
+                  <p className="text-[11px] text-slate-400 font-mono truncate max-w-xl">
+                    {activeDualVideo.title} • Thư mục: {activeDualVideo.folderName}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    soundSynth.playSfx("pop");
+                    addToast(`Đã xuất video lồng tiếng sang: ${savePath}`, "success");
+                  }}
+                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-md"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Xuất Tệp Đã Lồng Tiếng</span>
+                </button>
+                <button
+                  onClick={() => setIsDualPreviewOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            {/* Dual Video Grid Body */}
+            <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 overflow-y-auto">
+              {/* Left Screen: Original Video */}
+              <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden flex flex-col space-y-2">
+                <div className="px-3 py-2 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between text-xs">
+                  <span className="font-bold text-rose-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> Video Gốc (Gốc SRT Subtitles)
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">Âm thanh gốc: {origVolume}%</span>
+                </div>
+
+                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden group">
+                  <img
+                    src="https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&h=450&fit=crop"
+                    alt="Original Video"
+                    className="w-full h-full object-cover opacity-80"
+                  />
+                  {/* Simulated Subtitle Overlay */}
+                  <div className="absolute bottom-4 left-4 right-4 text-center">
+                    <span className="bg-black/80 text-yellow-300 px-3 py-1 rounded text-xs font-medium border border-yellow-500/30">
+                      [Gốc SRT] 探索未知星系，感受宇宙浩瀚与神祕...
+                    </span>
+                  </div>
+
+                  {!isDualPlaying && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-rose-600/90 text-white flex items-center justify-center shadow-lg">
+                        <Play className="w-6 h-6 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Original Audio Volume Control */}
+                <div className="p-3 bg-slate-900/50 flex items-center gap-3 text-xs">
+                  <Volume2 className="w-4 h-4 text-slate-400 shrink-0" />
+                  <span className="text-[11px] text-slate-300 shrink-0">Nhạc nền gốc:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={origVolume}
+                    onChange={(e) => setOrigVolume(Number(e.target.value))}
+                    className="w-full accent-rose-500 cursor-pointer"
+                  />
+                  <span className="text-[11px] font-mono text-slate-400 w-8">{origVolume}%</span>
+                </div>
+              </div>
+
+              {/* Right Screen: AI Dubbed Video */}
+              <div className="bg-slate-950 border border-slate-800 rounded-xl overflow-hidden flex flex-col space-y-2">
+                <div className="px-3 py-2 bg-slate-900/90 border-b border-slate-800/80 flex items-center justify-between text-xs">
+                  <span className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Video Lồng Tiếng AI (Đã Dịch Vi-Sub)
+                  </span>
+                  <span className="text-[10px] font-mono text-slate-400">Giọng đọc AI: {dubbedVolume}%</span>
+                </div>
+
+                <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden group">
+                  <img
+                    src="https://images.unsplash.com/photo-1536240478700-b869070f9279?w=800&h=450&fit=crop"
+                    alt="AI Dubbed Video"
+                    className="w-full h-full object-cover"
+                  />
+                  {/* Translated Subtitle Overlay */}
+                  <div className="absolute bottom-4 left-4 right-4 text-center">
+                    <span className="bg-[#ff2b54]/90 text-white px-3 py-1 rounded text-xs font-bold border border-rose-400/40 shadow-lg">
+                      [AI Dịch] Khám phá các thiên hà chưa biết, cảm nhận sự bao la của vũ trụ...
+                    </span>
+                  </div>
+
+                  {!isDualPlaying && (
+                    <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+                      <div className="w-12 h-12 rounded-full bg-indigo-600/90 text-white flex items-center justify-center shadow-lg">
+                        <Play className="w-6 h-6 fill-current ml-0.5" />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* AI Dubbed Audio Volume Control */}
+                <div className="p-3 bg-slate-900/50 flex items-center gap-3 text-xs">
+                  <Mic className="w-4 h-4 text-indigo-400 shrink-0" />
+                  <span className="text-[11px] text-slate-300 shrink-0">Giọng lồng tiếng AI:</span>
+                  <input
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={dubbedVolume}
+                    onChange={(e) => setDubbedVolume(Number(e.target.value))}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                  <span className="text-[11px] font-mono text-slate-400 w-8">{dubbedVolume}%</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Synchronized Playback Control Toolbar */}
+            <div className="px-5 py-3 bg-slate-950 border-t border-slate-800 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    setIsDualPlaying(!isDualPlaying);
+                    soundSynth.playSfx("pop");
+                  }}
+                  className="w-10 h-10 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white flex items-center justify-center shadow-lg cursor-pointer active:scale-95"
+                >
+                  {isDualPlaying ? <Pause className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
+                </button>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono text-cyan-300 font-bold">00:42</span>
+                  <span className="text-xs text-slate-600">/</span>
+                  <span className="text-xs font-mono text-slate-400">{activeDualVideo.duration}</span>
+                </div>
+              </div>
+
+              {/* Speed Controller */}
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] text-slate-400 font-medium">Tốc độ phát:</span>
+                <div className="flex items-center gap-1 bg-slate-900 border border-slate-800 rounded-lg p-0.5 text-xs">
+                  {[0.75, 1.0, 1.25, 1.5].map((speed) => (
+                    <button
+                      key={speed}
+                      onClick={() => setDualPlaybackSpeed(speed)}
+                      className={`px-2 py-0.5 rounded text-[11px] font-bold cursor-pointer ${
+                        dualPlaybackSpeed === speed
+                          ? "bg-indigo-600 text-white shadow-sm"
+                          : "text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {speed}x
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Direct OS Folder Picker Modal */}
+      <FolderPickerModal
+        isOpen={isFolderPickerOpen}
+        currentPath={savePath}
+        onClose={() => setIsFolderPickerOpen(false)}
+        onSelectFolder={(selectedPath) => {
+          setSavePath(selectedPath);
+          addToast(`Đã thiết lập đường dẫn xuất video: ${selectedPath}`, "success");
+        }}
+      />
     </div>
   );
 };

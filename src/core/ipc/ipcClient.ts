@@ -4,6 +4,7 @@
  */
 
 import { IPCRequest, IPCResponse, HardwareTelemetryData, QueueMetrics, JobDescriptor } from './types';
+import { getApiUrl } from '../../utils/apiClient';
 
 class DesktopIPCClient {
   private baseUrl: string;
@@ -12,9 +13,10 @@ class DesktopIPCClient {
   private isConnected: boolean = false;
 
   constructor() {
-    this.baseUrl = (typeof window !== 'undefined' && (window as any).__CREATOROS_API_URL__)
-      || (import.meta as any).env?.VITE_BACKEND_URL
-      || 'http://localhost:5000/api';
+    const customUrl = (typeof window !== 'undefined' && (window as any).__CREATOROS_API_URL__)
+      || (import.meta as any).env?.VITE_BACKEND_URL;
+    
+    this.baseUrl = customUrl ? customUrl.replace(/\/$/, '') : getApiUrl('/api');
 
     if (typeof window !== 'undefined') {
       this.initEventStream();
@@ -26,7 +28,9 @@ class DesktopIPCClient {
    */
   private initEventStream() {
     try {
-      const streamUrl = `${this.baseUrl.replace(/\/downloader$/, '')}/events`;
+      const streamUrl = this.baseUrl.endsWith('/events') 
+        ? this.baseUrl 
+        : `${this.baseUrl.replace(/\/downloader$/, '')}/events`;
       this.sseSource = new EventSource(streamUrl);
 
       this.sseSource.onopen = () => {
@@ -82,7 +86,11 @@ class DesktopIPCClient {
    * Send Request to Core Daemon via REST / Native IPC
    */
   public async invoke<T = any>(endpoint: string, method: 'GET' | 'POST' | 'DELETE' = 'POST', body?: any): Promise<T> {
-    const url = `${this.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    const cleanEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+    let url = `${this.baseUrl}${cleanEndpoint}`;
+    if (this.baseUrl.endsWith('/api') && cleanEndpoint.startsWith('/api/')) {
+      url = `${this.baseUrl.slice(0, -4)}${cleanEndpoint}`;
+    }
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',

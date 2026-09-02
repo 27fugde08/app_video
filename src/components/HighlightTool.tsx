@@ -14,7 +14,12 @@ import {
   CheckCircle,
   FileText,
   Eye,
-  Sliders
+  Sliders,
+  Type,
+  Edit3,
+  ShieldAlert,
+  Image,
+  CheckCircle2
 } from "lucide-react";
 import { HighlightResult, HighlightItem } from "../../shared/types";
 import { soundSynth } from "../utils/audioUtils";
@@ -34,6 +39,16 @@ export const HighlightTool: React.FC = () => {
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [selectedHighlight, setSelectedHighlight] = useState<HighlightItem | null>(null);
   const [copiedScript, setCopiedScript] = useState(false);
+  
+  // Watermark & Subtitle Editor States (Step 8)
+  const [watermarkText, setWatermarkText] = useState("@CreatorOS_Official");
+  const [watermarkPos, setWatermarkPos] = useState<"top-left" | "top-right" | "bottom-left" | "bottom-right">("bottom-right");
+  const [watermarkOpacity, setWatermarkOpacity] = useState(80);
+  const [editableSubtitles, setEditableSubtitles] = useState<Array<{ id: string; time: string; text: string }>>([
+    { id: "sub1", time: "00:03 - 00:08", text: "Bí mật đằng sau thành công triệu đô mà 99% người thất bại không hề biết!" },
+    { id: "sub2", time: "00:09 - 00:15", text: "Nếu bạn vượt qua được khủng hoảng tài chính năm 25 tuổi, bạn sẽ vô địch!" },
+    { id: "sub3", time: "00:16 - 00:25", text: "3 thói quen buổi sáng duy nhất quyết định vận mệnh thịnh vượng của bạn." }
+  ]);
   
   // Render simulation states
   const [isRendering, setIsRendering] = useState(false);
@@ -352,6 +367,99 @@ export const HighlightTool: React.FC = () => {
               </>
             )}
           </button>
+
+          {/* Subtitle Fast Editor & Watermark Injector Panel (Step 8) */}
+          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Image className="w-4 h-4 text-indigo-400" />
+                Nhúng Logo & Watermark Bản Quyền
+              </span>
+              <span className="px-2 py-0.5 rounded bg-indigo-500/10 text-indigo-300 text-[10px] font-mono">
+                Auto Overlay
+              </span>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div>
+                <label className="text-[11px] text-slate-400 font-semibold block mb-1">
+                  Chữ / Tag Watermark Kênh
+                </label>
+                <input
+                  type="text"
+                  value={watermarkText}
+                  onChange={(e) => setWatermarkText(e.target.value)}
+                  placeholder="@ChannelName"
+                  className="w-full px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] text-slate-400 font-semibold block mb-1">
+                    Vị Trí Nhúng
+                  </label>
+                  <select
+                    value={watermarkPos}
+                    onChange={(e) => setWatermarkPos(e.target.value as any)}
+                    className="w-full px-2.5 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                  >
+                    <option value="bottom-right">Góc Dưới Phải (Chuẩn)</option>
+                    <option value="bottom-left">Góc Dưới Trái</option>
+                    <option value="top-right">Góc Trên Phải</option>
+                    <option value="top-left">Góc Trên Trái</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-[11px] text-slate-400 font-semibold block mb-1">
+                    Độ Trong Suốt ({watermarkOpacity}%)
+                  </label>
+                  <input
+                    type="range"
+                    min="20"
+                    max="100"
+                    value={watermarkOpacity}
+                    onChange={(e) => setWatermarkOpacity(Number(e.target.value))}
+                    className="w-full accent-indigo-500 cursor-pointer"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Quick Subtitle ASR Spell Checker */}
+            <div className="pt-2 border-t border-slate-850 space-y-2">
+              <div className="flex items-center justify-between text-xs font-bold text-slate-300">
+                <span className="flex items-center gap-1.5">
+                  <Edit3 className="w-3.5 h-3.5 text-amber-400" />
+                  Sửa Lỗi Chính Tả Phụ Đề ASR Nhanh:
+                </span>
+                <span className="text-[10px] text-amber-400 font-mono">Live Sync</span>
+              </div>
+
+              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                {editableSubtitles.map((sub, idx) => (
+                  <div key={sub.id} className="p-2 rounded-lg bg-slate-900 border border-slate-800 space-y-1 text-xs">
+                    <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                      <span>Dòng #{idx + 1} ({sub.time})</span>
+                      <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                    </div>
+                    <input
+                      type="text"
+                      value={sub.text}
+                      onChange={(e) => {
+                        const newText = e.target.value;
+                        setEditableSubtitles((prev) =>
+                          prev.map((item) => (item.id === sub.id ? { ...item, text: newText } : item))
+                        );
+                      }}
+                      className="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-amber-500"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Right Column: Output Showcase */}
@@ -371,7 +479,7 @@ export const HighlightTool: React.FC = () => {
               </div>
             </div>
 
-            {/* Video Player Mock */}
+            {/* Video Player Mock with Live Watermark Overlay */}
             <div className="w-full aspect-video bg-slate-950 border border-slate-800 rounded-2xl overflow-hidden relative group flex items-center justify-center">
               <img 
                 src="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1000&auto=format&fit=crop" 
@@ -379,6 +487,23 @@ export const HighlightTool: React.FC = () => {
                 className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:opacity-60 transition-opacity"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent" />
+
+              {/* Watermark Overlay Badge */}
+              <div
+                style={{ opacity: watermarkOpacity / 100 }}
+                className={`absolute z-20 px-2.5 py-1 rounded-md bg-black/70 border border-white/20 text-[10px] font-mono font-bold text-white shadow-md backdrop-blur-sm pointer-events-none ${
+                  watermarkPos === "top-left"
+                    ? "top-3 left-3"
+                    : watermarkPos === "top-right"
+                    ? "top-3 right-3"
+                    : watermarkPos === "bottom-left"
+                    ? "bottom-12 left-3"
+                    : "bottom-12 right-3"
+                }`}
+              >
+                {watermarkText}
+              </div>
+
               <button className="w-16 h-16 bg-indigo-500/80 hover:bg-indigo-500 text-white rounded-full flex items-center justify-center backdrop-blur-sm transition-transform hover:scale-105 z-10 shadow-xl">
                 <Play className="w-6 h-6 ml-1" />
               </button>

@@ -16,6 +16,7 @@ import {
 import { DownloaderConfig } from "../types";
 import { soundSynth } from "../../../utils/audioUtils";
 import { useToast } from "../../../context/ToastContext";
+import { FolderPickerModal } from "../../../components/FolderPickerModal";
 
 interface AdvancedConfigPanelProps {
   config: DownloaderConfig;
@@ -27,6 +28,7 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
   setConfig
 }) => {
   const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [isFolderPickerOpen, setIsFolderPickerOpen] = useState<boolean>(false);
   const { addToast } = useToast();
 
   const toggleOpen = () => {
@@ -36,7 +38,7 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
 
   const handleBrowseFolder = () => {
     soundSynth.playSfx("pop");
-    addToast("Đã chọn thư mục: D:\\Downloads\\CreatorOS\\BatchVault", "info");
+    setIsFolderPickerOpen(true);
   };
 
   return (
@@ -259,6 +261,17 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
           </div>
         </div>
       )}
+
+      {/* Interactive Visual Folder Picker Modal */}
+      <FolderPickerModal
+        isOpen={isFolderPickerOpen}
+        currentPath={config.saveDirectory}
+        onClose={() => setIsFolderPickerOpen(false)}
+        onSelectFolder={(selectedPath) => {
+          setConfig((prev) => ({ ...prev, saveDirectory: selectedPath }));
+          addToast(`Đã chọn thư mục lưu trữ: ${selectedPath}`, "success");
+        }}
+      />
     </div>
   );
 };

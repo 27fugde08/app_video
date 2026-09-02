@@ -60,10 +60,10 @@ export const DashboardTerminalLogs: React.FC = () => {
 
   const consoleEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll logic
+  // Auto-scroll logic (instant scroll to avoid animation queue jank)
   useEffect(() => {
     if (isAutoScroll && consoleEndRef.current) {
-      consoleEndRef.current.scrollIntoView({ behavior: "smooth" });
+      consoleEndRef.current.scrollIntoView({ behavior: "auto" });
     }
   }, [terminalLines, isAutoScroll]);
 
@@ -83,7 +83,7 @@ export const DashboardTerminalLogs: React.FC = () => {
           type: type as any,
           timestamp: new Date().toLocaleTimeString("vi-VN", { hour12: false })
         }
-      ]);
+      ].slice(-250));
     };
 
     const handleProgress = (progressVal: number) => {

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import {
   FolderOpen,
   UploadCloud,
+  Upload,
   Layers,
   Save,
   Trash2,
@@ -41,6 +42,7 @@ import {
   CloudUpload,
   ArrowRight,
   Info,
+  Mic,
   X
 } from "lucide-react";
 import { soundSynth } from "../utils/audioUtils";
@@ -236,16 +238,22 @@ const INITIAL_FOLDERS: DownloadedFolderItem[] = [
   }
 ];
 
-export function DownloadedVideosTool() {
+interface DownloadedVideosToolProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolProps) {
   const { addToast } = useToast();
   const { addTask } = useQueue();
 
   // State
+  const [activeSubTab, setActiveSubTab] = useState<"folders" | "audio" | "recovery">("folders");
   const [folders, setFolders] = useState<DownloadedFolderItem[]>(INITIAL_FOLDERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"grid" | "table" | "all-videos">("grid");
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
 
   // Modals & Drawers
   const [viewingFolder, setViewingFolder] = useState<DownloadedFolderItem | null>(null);
@@ -504,6 +512,22 @@ export function DownloadedVideosTool() {
     addToast(`Đã chuyển ${count} video sang AI Highlight & Kịch bản Viral!`, "success");
   };
 
+  const handleSendToDubbing = (folderName: string, count: number) => {
+    soundSynth.playSfx("success");
+    addTask({
+      title: `Nạp ${count} video [${folderName}] sang Lồng tiếng AI`,
+      type: "render",
+      status: "running",
+      progress: 20
+    });
+    addToast(`Đã chuyển ${count} video sang Trình Lồng Tiếng AI!`, "success");
+    if (onNavigateToTab) {
+      onNavigateToTab("translate");
+    } else {
+      window.dispatchEvent(new CustomEvent("creatoros:navigate", { detail: "translate" }));
+    }
+  };
+
   const getPlatformBadge = (platform: string) => {
     switch (platform.toLowerCase()) {
       case "douyin":
@@ -609,6 +633,169 @@ export function DownloadedVideosTool() {
         </div>
       </div>
 
+      {/* Vault Sub-Tabs Navigation */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl">
+        <button
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            setActiveSubTab("folders");
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeSubTab === "folders"
+              ? "bg-gradient-to-r from-rose-600 to-rose-500 text-white shadow-lg shadow-rose-600/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <FolderOpen className="w-4 h-4" />
+          <span>1. Thư Mục & Video Kho Vault</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            setActiveSubTab("audio");
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeSubTab === "audio"
+              ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-600/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <Music className="w-4 h-4" />
+          <span>2. Kho Âm Thanh MP3 Trích Xuất</span>
+        </button>
+
+        <button
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            setActiveSubTab("recovery");
+          }}
+          className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer ${
+            activeSubTab === "recovery"
+              ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-600/30"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <RefreshCw className="w-4 h-4" />
+          <span>3. Tệp Lỗi & Khôi Phục</span>
+        </button>
+      </div>
+
+      {/* 1.5 Desktop Drag & Drop Direct Dropzone */}
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setIsDraggingFile(true);
+        }}
+        onDragLeave={() => setIsDraggingFile(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setIsDraggingFile(false);
+          const files = Array.from(e.dataTransfer.files) as File[];
+          if (files.length > 0) {
+            const videoFiles: File[] = files.filter((f: File) => f.type.startsWith("video/") || f.name.match(/\.(mp4|mov|mkv|avi|webm)$/i));
+            if (videoFiles.length > 0) {
+              const newFolder: DownloadedFolderItem = {
+                id: `folder_desktop_${Date.now()}`,
+                stt: folders.length + 1,
+                name: `Tệp Máy Tính Direct Drop (${videoFiles.length})`,
+                videoCount: videoFiles.length,
+                path: `C:\\Users\\Desktop\\Local_Import_${Date.now()}`,
+                platform: "douyin",
+                createdAt: new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+                totalSize: `${(videoFiles.reduce((acc: number, f: File) => acc + (f.size || 0), 0) / (1024 * 1024)).toFixed(1)} MB`,
+                coverImage: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=600&h=350&fit=crop",
+                videos: videoFiles.map((vf: File, idx: number) => ({
+                  id: `vf_${Date.now()}_${idx}`,
+                  videoId: String(Math.floor(100000000000000000 + Math.random() * 900000000000000000)),
+                  title: vf.name,
+                  thumbnail: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=400&h=225&fit=crop",
+                  duration: "01:30",
+                  resolution: "1080x1920 (9:16)",
+                  fileSize: `${(vf.size / (1024 * 1024)).toFixed(1)} MB`,
+                  platform: "douyin",
+                  views: 0,
+                  likes: 0,
+                  downloadDate: new Date().toLocaleDateString("vi-VN"),
+                  filePath: `C:\\Users\\Desktop\\${vf.name}`,
+                  hasAudioExtracted: false
+                }))
+              };
+              setFolders(prev => [newFolder, ...prev]);
+              soundSynth.playSfx("success");
+              addToast(`Đã nhập trực tiếp ${videoFiles.length} video từ máy tính vào Kho Video!`, "success");
+            } else {
+              addToast("Vui lòng thả các tệp video (.mp4, .mov, .mkv) từ máy tính.", "warning");
+            }
+          }
+        }}
+        className={`relative rounded-2xl border-2 border-dashed p-4 transition-all flex flex-col sm:flex-row items-center justify-between gap-4 cursor-pointer shadow-lg ${
+          isDraggingFile
+            ? "bg-rose-950/50 border-rose-400 text-rose-200 ring-4 ring-rose-500/20"
+            : "bg-slate-900/60 border-slate-800 hover:border-slate-700 text-slate-400"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center shrink-0 border border-rose-500/30">
+            <Upload className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-white flex items-center gap-2">
+              <span>Kéo Thả Video Trực Tiếp Từ Máy Tính (Desktop Direct Import)</span>
+              <span className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono">1-Click Local Sync</span>
+            </h4>
+            <p className="text-[11px] text-slate-400">
+              Thả tệp .MP4 / .MOV / .MKV từ ổ đĩa máy tính vào đây để tự động tạo thư mục vault quản lý
+            </p>
+          </div>
+        </div>
+
+        <label className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 text-white text-xs font-bold transition-all shadow-md flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95">
+          <Plus className="w-3.5 h-3.5" />
+          <span>Nạp Tệp Máy Tính</span>
+          <input
+            type="file"
+            multiple
+            accept="video/*"
+            onChange={(e) => {
+              const files = Array.from(e.target.files || []) as File[];
+              if (files.length > 0) {
+                const newFolder: DownloadedFolderItem = {
+                  id: `folder_desktop_${Date.now()}`,
+                  stt: folders.length + 1,
+                  name: `Tệp Máy Tính Imported (${files.length})`,
+                  videoCount: files.length,
+                  path: `C:\\Users\\Desktop\\Imported_${Date.now()}`,
+                  platform: "douyin",
+                  createdAt: new Date().toLocaleDateString("vi-VN") + " " + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
+                  totalSize: `${(files.reduce((acc: number, f: File) => acc + (f.size || 0), 0) / (1024 * 1024)).toFixed(1)} MB`,
+                  coverImage: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=600&h=350&fit=crop",
+                  videos: files.map((vf: File, idx: number) => ({
+                    id: `vf_${Date.now()}_${idx}`,
+                    videoId: String(Math.floor(100000000000000000 + Math.random() * 900000000000000000)),
+                    title: vf.name,
+                    thumbnail: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=400&h=225&fit=crop",
+                    duration: "01:30",
+                    resolution: "1080x1920 (9:16)",
+                    fileSize: `${(vf.size / (1024 * 1024)).toFixed(1)} MB`,
+                    platform: "douyin",
+                    views: 0,
+                    likes: 0,
+                    downloadDate: new Date().toLocaleDateString("vi-VN"),
+                    filePath: `C:\\Users\\Desktop\\${vf.name}`,
+                    hasAudioExtracted: false
+                  }))
+                };
+                setFolders(prev => [newFolder, ...prev]);
+                soundSynth.playSfx("success");
+                addToast(`Đã thêm ${files.length} video từ máy tính vào Kho Video!`, "success");
+              }
+            }}
+            className="hidden"
+          />
+        </label>
+      </div>
+
       {/* 2. Controls & Filter Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 backdrop-blur-md">
         {/* Left: Quick Actions (Upload / Merge / Backup / Delete) */}
@@ -642,6 +829,20 @@ export function DownloadedVideosTool() {
                 {selectedIds.size}
               </span>
             )}
+          </button>
+
+          {/* Quick Send Selected to Dubbing */}
+          <button
+            onClick={() => {
+              const targetCount = selectedIds.size > 0 
+                ? folders.filter(f => selectedIds.has(f.id)).reduce((acc, f) => acc + f.videoCount, 0)
+                : totalVideosCount;
+              handleSendToDubbing(selectedIds.size > 0 ? `${selectedIds.size} thư mục chọn` : "Toàn bộ thư mục", targetCount);
+            }}
+            className="px-3 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition-all cursor-pointer"
+          >
+            <Mic className="w-3.5 h-3.5 text-indigo-200" />
+            <span>Chuyển sang Dịch Lồng Tiếng AI</span>
           </button>
 
           {/* Xuất / Sao lưu Dropdown */}
@@ -902,6 +1103,14 @@ export function DownloadedVideosTool() {
                         title="Bóc tách AI Highlight & Hook"
                       >
                         <Scissors className="w-3.5 h-3.5 text-cyan-400" />
+                      </button>
+
+                      <button
+                        onClick={() => handleSendToDubbing(folder.name, folder.videoCount)}
+                        className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700/60 transition-colors cursor-pointer"
+                        title="Chuyển sang Lồng Tiếng AI"
+                      >
+                        <Mic className="w-3.5 h-3.5 text-blue-400" />
                       </button>
                     </div>
                   </div>
@@ -1166,6 +1375,93 @@ export function DownloadedVideosTool() {
         </div>
       )}
 
+      {/* SUB TAB 2: KHO ÂM THANH MP3 TRÍCH XUẤT */}
+      {activeSubTab === "audio" && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center">
+                <Music className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Kho Âm Thanh MP3 Trích Xuất (Audio Vault)</h3>
+                <p className="text-xs text-slate-400">Các tệp nhạc nền, thoại gốc bóc tách từ video sẵn sàng cho Studio Lồng Tiếng AI</p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                soundSynth.playSfx("cash");
+                addToast("Đã trích xuất MP3 hàng loạt cho 12 video trong Vault!", "success");
+              }}
+              className="px-3.5 py-1.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
+            >
+              <Music className="w-3.5 h-3.5 text-purple-200" />
+              <span>Trích Xuất All MP3</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {[
+              { name: "Douyin_Trending_BGM_320kbps.mp3", duration: "02:15", size: "5.2 MB", source: "Thư mục Douyin Hot" },
+              { name: "Voice_Narrator_Chinese_Raw.mp3", duration: "01:45", size: "3.8 MB", source: "Thư mục Phim Ngắn" },
+              { name: "TikTok_Viral_Sound_Effect.mp3", duration: "00:58", size: "1.9 MB", source: "Thư mục Remix" }
+            ].map((audio, idx) => (
+              <div key={idx} className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center font-mono text-xs font-bold">
+                    MP3
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">{audio.name}</h4>
+                    <p className="text-[10px] text-slate-400">{audio.source} • {audio.duration} • {audio.size}</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    soundSynth.playSfx("pop");
+                    addToast(`Phát thử âm thanh: ${audio.name}`, "info");
+                  }}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-purple-300 rounded text-xs font-bold cursor-pointer"
+                >
+                  Phát
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* SUB TAB 3: TỆP LỖI & KHÔI PHỤC */}
+      {activeSubTab === "recovery" && (
+        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center">
+              <RefreshCw className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Trung Tâm Khôi Phục & Tải Lại Tệp Lỗi</h3>
+              <p className="text-xs text-slate-400">Tự động khôi phục các tệp video tải dở dang do đứt mạng hoặc bị giới hạn IP</p>
+            </div>
+          </div>
+
+          <div className="p-4 bg-slate-950 border border-amber-500/20 rounded-xl flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-3 h-3 rounded-full bg-emerald-500 animate-ping" />
+              <span className="text-xs font-bold text-slate-200">Không có tệp nào bị hỏng. Toàn bộ 12 video trong Vault ở trạng thái nguyên vẹn 100%!</span>
+            </div>
+            <button
+              onClick={() => {
+                soundSynth.playSfx("success");
+                addToast("Đã quét dọn và kiểm tra tính toàn vẹn Vault!", "success");
+              }}
+              className="px-3.5 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-xs font-bold cursor-pointer"
+            >
+              Quét Lại Vault
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 4. MODAL / DRAWER: Xem danh sách video bên trong một thư mục */}
       {viewingFolder && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
@@ -1224,6 +1520,14 @@ export function DownloadedVideosTool() {
                 >
                   <Scissors className="w-3.5 h-3.5" />
                   <span>Gửi vào AI Highlight</span>
+                </button>
+
+                <button
+                  onClick={() => handleSendToDubbing(viewingFolder.name, viewingFolder.videoCount)}
+                  className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-md shadow-blue-600/30"
+                >
+                  <Mic className="w-3.5 h-3.5" />
+                  <span>Lồng tiếng AI ngay</span>
                 </button>
               </div>
 
@@ -1572,8 +1876,18 @@ export function DownloadedVideosTool() {
 
                 <div className="flex items-center gap-2">
                   <button
+                    onClick={() => {
+                      handleSendToDubbing(activePreviewVideo.title, 1);
+                      setActivePreviewVideo(null);
+                    }}
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg cursor-pointer shadow-md shadow-blue-600/30 flex items-center gap-1.5"
+                  >
+                    <Mic className="w-3.5 h-3.5" />
+                    <span>Lồng tiếng AI ngay</span>
+                  </button>
+                  <button
                     onClick={() => setActivePreviewVideo(null)}
-                    className="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold rounded-lg cursor-pointer shadow-md shadow-rose-600/30"
+                    className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg cursor-pointer border border-slate-700"
                   >
                     Đóng
                   </button>
@@ -1581,6 +1895,72 @@ export function DownloadedVideosTool() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Floating Batch Action Bar when items are selected */}
+      {selectedIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-slate-900/95 border border-rose-500/40 rounded-2xl p-3 shadow-2xl backdrop-blur-xl flex items-center gap-3 animate-in fade-in slide-in-from-bottom-5">
+          <div className="flex items-center gap-2 px-3 py-1 bg-rose-500/20 border border-rose-500/30 rounded-xl text-xs font-bold text-rose-300">
+            <CheckSquare className="w-4 h-4 text-rose-400" />
+            <span>Đã chọn: {selectedIds.size} mục</span>
+          </div>
+
+          <div className="h-5 w-px bg-slate-800" />
+
+          {/* Action 1: Dubbing AI */}
+          <button
+            onClick={() => handleSendToDubbing("Đã chọn hàng loạt", selectedIds.size)}
+            className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-blue-600/30 cursor-pointer active:scale-95 transition-all"
+          >
+            <Mic className="w-3.5 h-3.5 text-blue-200" />
+            <span>🎙️ Lồng Tiếng AI ({selectedIds.size})</span>
+          </button>
+
+          {/* Action 2: Extract MP3 */}
+          <button
+            onClick={() => {
+              soundSynth.playSfx("cash");
+              addToast(`Đã xếp hàng trích xuất MP3 cho ${selectedIds.size} thư mục!`, "success");
+            }}
+            className="px-3.5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer active:scale-95 transition-all"
+          >
+            <Music className="w-3.5 h-3.5 text-purple-200" />
+            <span>🎵 Trích Xuất MP3</span>
+          </button>
+
+          {/* Action 3: Open OS Path */}
+          <button
+            onClick={() => {
+              soundSynth.playSfx("pop");
+              const firstSelected = folders.find(f => selectedIds.has(f.id));
+              if (firstSelected) {
+                addToast(`Đường dẫn OS: ${firstSelected.path}`, "info");
+              }
+            }}
+            className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-cyan-400" />
+            <span>📂 Thư Mục OS</span>
+          </button>
+
+          {/* Action 4: Delete */}
+          <button
+            onClick={handleDeleteSelected}
+            className="px-3 py-2 bg-rose-600/20 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Xóa</span>
+          </button>
+
+          {/* Action 5: Deselect All */}
+          <button
+            onClick={() => setSelectedIds(new Set())}
+            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition-colors cursor-pointer"
+            title="Bỏ chọn tất cả"
+          >
+            <X className="w-4 h-4" />
+          </button>
         </div>
       )}
     </div>

@@ -1,19 +1,20 @@
 import { SupportedPlatformId, VideoDownloadItem, DownloaderConfig, BatchStats } from "../types";
+import { getApiUrl } from "../../../utils/apiClient";
 
 /**
  * Base URL for CreatorOS Local Backend Service (Node.js IPC Daemon)
  */
 const BACKEND_BASE_URL = (typeof window !== "undefined" && (window as any).__CREATOROS_API_URL__) 
   || (import.meta as any).env?.VITE_BACKEND_URL 
-  || "http://localhost:5000/api/downloader";
+  || getApiUrl("/api/downloader");
 
 // Platform recognition helper
 export function detectPlatform(url: string): SupportedPlatformId {
   const clean = url.toLowerCase().trim();
-  if (clean.includes("tiktok.com")) return "tiktok";
-  if (clean.includes("douyin.com") || clean.includes("iesdouyin.com")) return "douyin";
-  if (clean.includes("facebook.com") || clean.includes("fb.watch")) return "facebook";
-  if (clean.includes("youtube.com") || clean.includes("youtu.be")) return "youtube";
+  if (clean.includes("tiktok.com") || clean.includes("tiktok") || clean.includes("vt.tiktok") || clean.includes("vm.tiktok")) return "tiktok";
+  if (clean.includes("douyin.com") || clean.includes("iesdouyin.com") || clean.includes("v.douyin") || clean.includes("douyin")) return "douyin";
+  if (clean.includes("facebook.com") || clean.includes("fb.watch") || clean.includes("fb.com") || clean.includes("facebook")) return "facebook";
+  if (clean.includes("youtube.com") || clean.includes("youtu.be") || clean.includes("youtube")) return "youtube";
   return "unknown";
 }
 
@@ -322,24 +323,42 @@ export async function updateConcurrency(concurrency: number): Promise<boolean> {
 }
 
 /**
- * 6. Helper: Extract and deduplicate URLs from multi-line text input
+ * 6. Helper: Extract, clean, and deduplicate URLs or share texts from multi-line input
  */
 export function extractUrls(rawText: string): string[] {
-  const lines = rawText.split(/\r?\n/);
+  if (!rawText || !rawText.trim()) return [];
   const validUrls: string[] = [];
-  const urlPattern = /(https?:\/\/[^\s]+)/g;
 
-  for (const line of lines) {
-    const match = line.match(urlPattern);
-    if (match) {
-      for (const u of match) {
-        const trimmed = u.trim();
-        if (trimmed && !validUrls.includes(trimmed)) {
-          validUrls.push(trimmed);
-        }
+  // Match URLs starting with http:// or https:// or domain patterns like www. / v.douyin / vt.tiktok / fb.watch / etc.
+  const broadUrlRegex = /(https?:\/\/[^\s"'<>\(\)]+|www\.[^\s"'<>\(\)]+|(?:v|vt|vm)\.(?:douyin|tiktok)\.com\/[^\s"'<>\(\)]+|(?:fb\.watch|youtu\.be)\/[^\s"'<>\(\)]+)/gi;
+
+  const matches = rawText.match(broadUrlRegex);
+  if (matches) {
+    for (const u of matches) {
+      // Clean trailing non-URL characters (Chinese/Vietnamese punctuation, symbols, commas, quotes, periods)
+      let cleaned = u.replace(/[，。！？；：,"'\)\]\}>]+$/u, "").trim();
+
+      // Auto-prefix https:// if missing
+      if (!cleaned.startsWith("http://") && !cleaned.startsWith("https://")) {
+        cleaned = `https://${cleaned}`;
+      }
+
+      if (cleaned && !validUrls.includes(cleaned)) {
+        validUrls.push(cleaned);
       }
     }
   }
+
+  // Fallback: If no http/domain matches found, but there are non-empty non-whitespace lines
+  if (validUrls.length === 0) {
+    const lines = rawText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    for (const line of lines) {
+      if (!validUrls.includes(line)) {
+        validUrls.push(line);
+      }
+    }
+  }
+
   return validUrls;
 }
 
