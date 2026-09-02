@@ -1,0 +1,40 @@
+appId: com.creatoros.desktop
+productName: CreatorOS Desktop
+
+# Giới hạn danh sách ngôn ngữ Chromium (.pak) trong thư mục locales/
+# Loại bỏ ~50+ ngôn ngữ không cần thiết, giúp giảm dung lượng bộ cài đặt (NSIS / Portable)
+electronLanguages:
+  - vi
+  - en-US
+  - en-GB
+
+directories:
+  output: release
+
+files:
+  - "dist/**/*"
+  - "electron/**/*"
+  - "backend/**/*"
+
+extraResources:
+  - from: backend
+    to: backend
+    filter:
+      - "**/*"
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: public/icon.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: CreatorOS Desktop

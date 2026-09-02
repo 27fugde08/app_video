@@ -1,0 +1,47 @@
+# ==============================================================================
+# CreatorOS PRO_V40 - Heavy AI & Media Dependencies Configuration (requirements.txt)
+# ==============================================================================
+# Tệp cấu hình cài đặt tập trung các thư viện nặng (AI Models, GPU Drivers, Audio/Video Processing)
+# Lệnh cài đặt nhanh: pip install -r requirements.txt
+# Đối với GPU NVIDIA CUDA 12.1: pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121
+# ==============================================================================
+
+# --- 1. PYTORCH CORE & CUDA GPU ACCELERATION (Nặng ~2.5GB) ---
+torch>=2.1.2
+torchaudio>=2.1.2
+torchvision>=0.16.2
+
+# --- 2. AI VOICE SEPARATION & DEMUCS ENGINE (Nặng ~800MB) ---
+demucs>=4.0.1
+soundfile>=0.12.1
+librosa>=0.10.1
+
+# --- 3. SPEECH-TO-TEXT (STT) & WHISPER ENGINE (Nặng ~1.2GB) ---
+faster-whisper>=1.0.1
+ctranslate2>=4.0.0
+openai-whisper>=20231117
+
+# --- 4. TEXT-TO-SPEECH (TTS) & VOICE SYNTHESIS ---
+edge-tts>=6.1.9
+gTTS>=2.5.1
+
+# --- 5. LIP-SYNC & WAV2LIP COMPUTER VISION ENGINE ---
+opencv-python>=4.9.0.80
+opencv-contrib-python>=4.9.0.80
+scipy>=1.11.4
+numpy>=1.26.4
+pillow>=10.2.0
+nltk>=3.8.1
+tqdm>=4.66.1
+
+# --- 6. MEDIA PROCESSING & NO-WATERMARK DOWNLOADERS ---
+yt-dlp>=2024.3.10
+ffmpeg-python>=0.2.0
+requests>=2.31.0
+httpx>=0.27.0
+beautifulsoup4>=4.12.3
+
+# --- 7. SYSTEM PERFORMANCE & GPU HARDWARE MONITORS ---
+pynvml>=11.5.0
+psutil>=5.9.8
+python-dotenv>=1.0.1
