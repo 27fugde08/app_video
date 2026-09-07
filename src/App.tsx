@@ -8,11 +8,13 @@ import { ToastProvider } from "./context/ToastContext";
 import { GlobalTaskQueueModal } from "./components/GlobalTaskQueueModal";
 import { ActivationModal } from "./components/ActivationModal";
 import { OtaUpdateModal } from "./components/OtaUpdateModal";
+import { GpuAccelerationModal } from "./components/GpuAccelerationModal";
 import { AnimatePresence, motion } from "framer-motion";
 import { SkeletonFallback } from "./components/SkeletonFallback";
 import { CSharpWpfStudioTool } from "./components/CSharpWpfStudioTool";
 
 // Lazy Load All Tools for Code Splitting
+const DecoupledArchitectureTool = lazy(() => import("./components/DecoupledArchitectureTool").then(module => ({ default: module.DecoupledArchitectureTool })));
 const WorkflowBuilderTool = lazy(() => import("./components/WorkflowBuilderTool").then(module => ({ default: module.WorkflowBuilderTool })));
 const LanClusterTool = lazy(() => import("./components/LanClusterTool").then(module => ({ default: module.LanClusterTool })));
 const LipSyncStudioTool = lazy(() => import("./components/LipSyncStudioTool").then(module => ({ default: module.LipSyncStudioTool })));
@@ -44,6 +46,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("csharp-wpf");
   const [isLicenseModalOpen, setIsLicenseModalOpen] = useState(false);
   const [isOtaModalOpen, setIsOtaModalOpen] = useState(false);
+  const [isGpuModalOpen, setIsGpuModalOpen] = useState(false);
   const [licenseStatus, setLicenseStatus] = useState<LicenseStatus | null>({
     is_activated: true,
     tier: "PRO_V48",
@@ -71,8 +74,14 @@ export default function App() {
         setActiveTab(e.detail as ActiveTab);
       }
     };
+    const handleOpenGpu = () => setIsGpuModalOpen(true);
+
     window.addEventListener("creatoros:navigate", handleNav);
-    return () => window.removeEventListener("creatoros:navigate", handleNav);
+    window.addEventListener("creatoros:open_gpu_modal", handleOpenGpu);
+    return () => {
+      window.removeEventListener("creatoros:navigate", handleNav);
+      window.removeEventListener("creatoros:open_gpu_modal", handleOpenGpu);
+    };
   }, []);
 
   const fetchLicenseStatus = async () => {
@@ -91,6 +100,8 @@ export default function App() {
     switch (activeTab) {
       case "csharp-wpf":
         return <CSharpWpfStudioTool />;
+      case "decoupled-queue":
+        return <DecoupledArchitectureTool />;
       case "workflow":
         return <WorkflowBuilderTool />;
       case "lan-cluster":
@@ -212,6 +223,12 @@ export default function App() {
           <OtaUpdateModal
             isOpen={isOtaModalOpen}
             onClose={() => setIsOtaModalOpen(false)}
+          />
+
+          {/* GPU Hardware Acceleration & Algorithm Modal */}
+          <GpuAccelerationModal
+            isOpen={isGpuModalOpen}
+            onClose={() => setIsGpuModalOpen(false)}
           />
         </div>
       </QueueProvider>

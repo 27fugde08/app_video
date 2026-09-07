@@ -432,6 +432,31 @@ export class BatchDownloadQueueManager {
   }
 
   /**
+   * Retry all failed and canceled tasks at once
+   */
+  public retryAllFailed(): number {
+    let retriedCount = 0;
+    for (const task of this.tasks.values()) {
+      if (task.state === QueueItemState.Failed || task.state === QueueItemState.Canceled) {
+        task.state = QueueItemState.Pending;
+        task.retryCount = 0;
+        task.progressPercent = 0;
+        task.downloadedBytes = 0;
+        task.errorMessage = undefined;
+        task.updatedAt = new Date();
+        this.emitTaskState(task);
+        retriedCount++;
+      }
+    }
+
+    if (retriedCount > 0) {
+      this.emitStats();
+      this.processNextInQueueAsync().catch(() => {});
+    }
+    return retriedCount;
+  }
+
+  /**
    * Clear completed and canceled tasks from queue state
    */
   public clearFinishedTasks(): void {

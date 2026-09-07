@@ -26,7 +26,8 @@ export type ActiveTab =
   | "dashboard"
   | "api-docs"
   | "user-guide"
-  | "csharp-wpf";
+  | "csharp-wpf"
+  | "decoupled-queue";
 
 // Highlight Tool Types
 export interface HighlightItem {

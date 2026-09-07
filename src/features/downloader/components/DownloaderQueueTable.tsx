@@ -14,12 +14,18 @@ import {
   Eye,
   Film,
   Music,
-  Download
+  Download,
+  FileSignature,
+  Sparkles,
+  CheckSquare,
+  X
 } from "lucide-react";
 import { VideoDownloadItem } from "../types";
 import { soundSynth } from "../../../utils/audioUtils";
 import { useToast } from "../../../context/ToastContext";
 import { downloaderService } from "../services/downloaderService";
+import { VideoAudioPreviewModal } from "./VideoAudioPreviewModal";
+import { BatchRenamerModal } from "./BatchRenamerModal";
 
 interface DownloaderQueueTableProps {
   items: VideoDownloadItem[];
@@ -27,6 +33,11 @@ interface DownloaderQueueTableProps {
   onToggleSelectAll: () => void;
   onToggleSelect: (id: string) => void;
   onRemoveItem: (id: string) => void;
+  onRetryFailedTasks?: () => void;
+  onDeleteSelected?: () => void;
+  onClearSelection?: () => void;
+  onBatchRename?: (renamedList: { id: string; newTitle: string; newFileName: string }[]) => void;
+  onBatchTransferToDubbing?: () => void;
   platformFilter: string;
   setPlatformFilter: (val: string) => void;
   statusFilter: string;
@@ -41,6 +52,11 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
   onToggleSelectAll,
   onToggleSelect,
   onRemoveItem,
+  onRetryFailedTasks,
+  onDeleteSelected,
+  onClearSelection,
+  onBatchRename,
+  onBatchTransferToDubbing,
   platformFilter,
   setPlatformFilter,
   statusFilter,
@@ -50,6 +66,7 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
 }) => {
   const { addToast } = useToast();
   const [activePreviewVideo, setActivePreviewVideo] = useState<VideoDownloadItem | null>(null);
+  const [isBatchRenamerOpen, setIsBatchRenamerOpen] = useState<boolean>(false);
 
   const isAllSelected = items.length > 0 && selectedIds.size === items.length;
 
@@ -64,6 +81,8 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
     const result = await downloaderService.openFileOrFolder(path);
     addToast(result.message, result.success ? "success" : "info");
   };
+
+  const selectedItemsList = items.filter((i) => selectedIds.has(i.id));
 
   return (
     <div className="obsidian-card rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl space-y-0">
@@ -102,7 +121,24 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
             <option value="completed">Đã hoàn tất</option>
             <option value="queued">Chờ tải</option>
             <option value="downloading">Đang tải</option>
+            <option value="failed">Thất bại / Lỗi</option>
           </select>
+
+          {/* Retry Failed Tasks Button */}
+          {onRetryFailedTasks && items.some((i) => i.status === 'failed' || i.status === 'error') && (
+            <button
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                onRetryFailedTasks();
+                addToast("Đã đưa các tác vụ lỗi trở lại hàng đợi!", "info");
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-semibold border border-amber-500/40 cursor-pointer transition-colors shadow-sm"
+              title="Thử lại tất cả các video bị hỏng/lỗi kết nối"
+            >
+              <RefreshCw className="w-3 h-3" />
+              Thử lại tác vụ lỗi
+            </button>
+          )}
         </div>
 
         {/* Search Box */}
@@ -117,6 +153,66 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
           />
         </div>
       </div>
+
+      {/* Floating Sticky Batch Actions Toolbar when items are selected */}
+      {selectedIds.size > 0 && (
+        <div className="px-4 py-2.5 bg-gradient-to-r from-cyan-950/80 via-indigo-950/80 to-purple-950/80 border-b border-cyan-500/30 flex flex-wrap items-center justify-between gap-3 text-xs animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="flex items-center gap-2 text-cyan-200 font-bold">
+            <CheckSquare className="w-4 h-4 text-cyan-400" />
+            <span>
+              Đã chọn <strong className="text-white font-mono">{selectedIds.size}</strong> / {items.length} video
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Batch Renamer Button */}
+            <button
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                setIsBatchRenamerOpen(true);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-violet-600 hover:bg-violet-500 text-white font-semibold flex items-center gap-1.5 shadow-md shadow-violet-600/30 cursor-pointer transition-all active:scale-95"
+            >
+              <FileSignature className="w-3.5 h-3.5" />
+              <span>Đổi tên hàng loạt ({selectedIds.size})</span>
+            </button>
+
+            {/* Batch Transfer to AI Dubbing */}
+            {onBatchTransferToDubbing && (
+              <button
+                onClick={onBatchTransferToDubbing}
+                className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-semibold flex items-center gap-1.5 shadow-md shadow-amber-600/30 cursor-pointer transition-all active:scale-95"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-amber-200" />
+                <span>⚡ Lồng tiếng AI</span>
+              </button>
+            )}
+
+            {/* Batch Delete */}
+            {onDeleteSelected && (
+              <button
+                onClick={onDeleteSelected}
+                className="px-3 py-1.5 rounded-lg bg-rose-600/25 hover:bg-rose-600 text-rose-300 hover:text-white border border-rose-500/40 font-semibold flex items-center gap-1.5 cursor-pointer transition-all active:scale-95"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Xóa đã chọn</span>
+              </button>
+            )}
+
+            {/* Clear Selection */}
+            {onClearSelection && (
+              <button
+                onClick={onClearSelection}
+                className="px-2 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 hover:text-white flex items-center gap-1 cursor-pointer transition-colors"
+                title="Bỏ chọn tất cả"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Bỏ chọn</span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Main Table */}
       <div className="overflow-x-auto custom-scrollbar">
@@ -313,83 +409,26 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
         </table>
       </div>
 
-      {/* Video Preview Player Modal */}
+      {/* Quick Video & Audio Preview Modal with Player and Demucs Waveform */}
       {activePreviewVideo && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="obsidian-card rounded-2xl max-w-lg w-full overflow-hidden border border-white/[0.08] shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="p-4 border-b border-white/[0.08] flex items-center justify-between bg-white/[0.02]">
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-cyan-500/20 text-cyan-300 flex items-center justify-center">
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white truncate max-w-[320px]">
-                    {activePreviewVideo.title}
-                  </h4>
-                  <p className="text-[10px] text-slate-400 font-mono">
-                    {activePreviewVideo.platform.toUpperCase()} • {activePreviewVideo.resolution}
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setActivePreviewVideo(null)}
-                className="w-7 h-7 rounded-lg hover:bg-white/10 flex items-center justify-center text-slate-400 hover:text-white font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="p-4 space-y-3">
-              <div className="w-full aspect-video rounded-xl bg-slate-950 overflow-hidden relative border border-white/10 flex items-center justify-center">
-                <img
-                  src={activePreviewVideo.thumbnail}
-                  alt=""
-                  className="w-full h-full object-cover opacity-80"
-                />
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 text-white gap-2 p-4 text-center">
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-cyan-500 to-violet-600 text-white flex items-center justify-center shadow-lg shadow-cyan-500/50 cursor-pointer hover:scale-105 transition-transform">
-                    <Play className="w-5 h-5 fill-white ml-0.5" />
-                  </div>
-                  <p className="text-xs font-bold">{activePreviewVideo.title}</p>
-                </div>
-              </div>
-
-              <div className="bg-[#07090f] rounded-xl p-3 border border-white/10 text-xs space-y-1 font-mono">
-                <div className="flex justify-between text-slate-400 text-[11px]">
-                  <span>Vị trí tệp lưu:</span>
-                  <span className="text-cyan-300 font-semibold truncate max-w-[260px]">
-                    {activePreviewVideo.filePath}
-                  </span>
-                </div>
-                <div className="flex justify-between text-slate-400 text-[11px]">
-                  <span>Thời lượng / Kích thước:</span>
-                  <span className="text-slate-200">
-                    {activePreviewVideo.duration} • {activePreviewVideo.fileSize}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  onClick={() => {
-                    handleOpenFolder(activePreviewVideo.filePath);
-                    setActivePreviewVideo(null);
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] text-xs font-semibold text-slate-200 cursor-pointer"
-                >
-                  Mở tệp trong Explorer
-                </button>
-                <button
-                  onClick={() => setActivePreviewVideo(null)}
-                  className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-xl cursor-pointer"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <VideoAudioPreviewModal
+          video={activePreviewVideo}
+          onClose={() => setActivePreviewVideo(null)}
+          onSendToDubbing={(v) => {
+            if (onBatchTransferToDubbing) onBatchTransferToDubbing();
+          }}
+        />
       )}
+
+      {/* Batch Renamer Rules Modal */}
+      <BatchRenamerModal
+        isOpen={isBatchRenamerOpen}
+        selectedItems={selectedItemsList}
+        onClose={() => setIsBatchRenamerOpen(false)}
+        onApplyRename={(renamedList) => {
+          if (onBatchRename) onBatchRename(renamedList);
+        }}
+      />
     </div>
   );
 };

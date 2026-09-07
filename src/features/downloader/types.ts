@@ -27,6 +27,7 @@ export interface VideoDownloadItem {
   hasAudioExtracted: boolean;
   filePath?: string;
   audioPath?: string;
+  previewUrl?: string;
   error?: string;
   views?: number;
   likes?: number;

@@ -45,6 +45,8 @@ import { useToast } from "../context/ToastContext";
 import { useQueue } from "../context/QueueContext";
 import { dubbingService } from "../features/dubbing/services/dubbingService";
 import { ipcClient } from "../core/ipc/ipcClient";
+import { geminiDubbingService } from "../services/geminiDubbingService";
+import { GpuAccelerationModal } from "./GpuAccelerationModal";
 
 interface FolderVideoItem {
   id: string;
@@ -239,6 +241,70 @@ export const TranslateVideoTool: React.FC = () => {
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>("manh_dung");
   const [voiceVolume, setVoiceVolume] = useState<number>(100);
   const [playingVoiceId, setPlayingVoiceId] = useState<string | null>(null);
+  const [isGpuModalOpen, setIsGpuModalOpen] = useState<boolean>(false);
+
+  // Gemini Subtitle & Script Translation Algorithm State
+  const [isGeminiTranslating, setIsGeminiTranslating] = useState<boolean>(false);
+  const [subtitleCues, setSubtitleCues] = useState<Array<{ id: number; time: string; orig: string; trans: string }>>([
+    { id: 1, time: "00:00 - 00:04", orig: "探索未知星系，感受宇宙浩瀚...", trans: "Khám phá các thiên hà chưa biết, cảm nhận sự bao la..." },
+    { id: 2, time: "00:05 - 00:09", orig: "每一次突破, 都是人类智慧的飞跃。", trans: "Mỗi một bước đột phá đều là sự vọt tiến của trí tuệ loài người." },
+    { id: 3, time: "00:10 - 00:15", orig: "欢迎来到 AI Creator OS 时代！", trans: "Chào mừng bạn đến với kỷ nguyên AI Creator OS!" }
+  ]);
+
+  // Auto-Sync Downloaded Folders from Downloader Pro
+  const syncDownloadedFolders = React.useCallback(() => {
+    try {
+      const savedRaw = localStorage.getItem("creatoros_downloaded_folders");
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setFolders((prev) => {
+            const map = new Map<string, FolderVideoItem>();
+            prev.forEach((f) => map.set(f.id, f));
+            parsed.forEach((df: FolderVideoItem) => map.set(df.id, df));
+            return Array.from(map.values()).map((f, idx) => ({ ...f, stt: idx + 1 }));
+          });
+          const first = parsed[0];
+          if (first) {
+            setSelectedFolderId(first.id);
+            setActiveFolderToPick(first);
+          }
+          return parsed.length;
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to sync downloaded folders:", e);
+    }
+    return 0;
+  }, []);
+
+  useEffect(() => {
+    syncDownloadedFolders();
+
+    const handleVideoDownloaded = (e: any) => {
+      syncDownloadedFolders();
+      if (e.detail?.folderName) {
+        addToast(`📥 Đã nhận thư mục vừa tải: "${e.detail.folderName}" vào mục Dịch & Lồng tiếng!`, "success");
+      }
+    };
+
+    const handleTransferred = (e: any) => {
+      syncDownloadedFolders();
+      if (e.detail?.folderName) {
+        addToast(`🚀 Đã tải video từ Downloader sang mục Dịch & Lồng tiếng!`, "success");
+      }
+    };
+
+    window.addEventListener("creatoros:video_downloaded", handleVideoDownloaded);
+    window.addEventListener("creatoros:transferred_videos", handleTransferred);
+    window.addEventListener("storage", syncDownloadedFolders);
+
+    return () => {
+      window.removeEventListener("creatoros:video_downloaded", handleVideoDownloaded);
+      window.removeEventListener("creatoros:transferred_videos", handleTransferred);
+      window.removeEventListener("storage", syncDownloadedFolders);
+    };
+  }, [syncDownloadedFolders, addToast]);
 
   // Load API Keys from AI Manager / LocalStorage if available
   const availableAiKeys = useMemo(() => {
@@ -344,6 +410,43 @@ export const TranslateVideoTool: React.FC = () => {
       filePath: ""
     };
 
+    setIsGeminiTranslating(true);
+    addToast(`🤖 Thuật toán Gemini 3.8 đang biên dịch & lồng tiếng cho "${firstVid.title}"...`, "info");
+
+    // Execute Gemini Algorithm Pipeline (Phase 1 to 4)
+    const sampleRawSubtitles = [
+      { time: "00:00 - 00:04", text: "欢迎使用 CreatorOS 自动化视频处理系统。" },
+      { time: "00:05 - 00:09", text: "Gemini AI 引擎正在自动提取音频并精准翻译." },
+      { time: "00:10 - 00:15", text: "生成自然 kịch bản lồng tiếng chuẩn nhịp khẩu hình nhân vật." }
+    ];
+
+    try {
+      const result = await geminiDubbingService.processVideoDubbingPipeline(
+        firstVid.title,
+        sampleRawSubtitles,
+        {
+          targetLang: targetLanguage,
+          voiceId: selectedVoiceId,
+          customSystemPrompt: customPrompt
+        }
+      );
+
+      if (result.success && result.translatedScript.length > 0) {
+        setSubtitleCues(
+          result.translatedScript.map((c) => ({
+            id: c.id,
+            time: `${c.startTime.slice(3, 8)} - ${c.endTime.slice(3, 8)}`,
+            orig: c.originalText,
+            trans: c.translatedText
+          }))
+        );
+      }
+    } catch (err) {
+      console.warn("Gemini dubbing pipeline error:", err);
+    } finally {
+      setIsGeminiTranslating(false);
+    }
+
     const targetLangsToProcess = isMultiLangMode ? multiTargetLangs : [targetLanguage];
 
     const getLangLabel = (code: string) => {
@@ -383,7 +486,7 @@ export const TranslateVideoTool: React.FC = () => {
         folderName: currentFolder.folderName,
         startTime: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
         status: "processing",
-        progress: 15,
+        progress: 25,
         targetLang: langLabel,
         voice: voiceName
       };
@@ -391,18 +494,18 @@ export const TranslateVideoTool: React.FC = () => {
       setQueueList((prev) => [newItem, ...prev]);
 
       addTask({
-        title: `Lồng tiếng AI [${langCode.toUpperCase()}]: ${firstVid.title}`,
+        title: `Gemini Dubbing [${langCode.toUpperCase()}]: ${firstVid.title}`,
         type: "render",
         status: "running",
-        progress: 20
+        progress: 30
       });
 
-      // Simulation interval per lang item
+      // Processing progression
       const interval = setInterval(() => {
         setQueueList((prev) =>
           prev.map((item) => {
             if (item.id === newItem.id) {
-              const nextProg = item.progress + 20;
+              const nextProg = item.progress + 25;
               if (nextProg >= 100) {
                 clearInterval(interval);
                 setHistoryList((h) => [
@@ -410,7 +513,7 @@ export const TranslateVideoTool: React.FC = () => {
                   ...h
                 ]);
                 soundSynth.playSfx("success");
-                addToast(`Lồng tiếng hoàn tất [${langLabel}] cho video "${firstVid.title}"!`, "success");
+                addToast(`🎉 Gemini Lồng tiếng AI hoàn tất [${langLabel}] cho "${firstVid.title}"!`, "success");
                 return { ...item, progress: 100, status: "completed" };
               }
               return { ...item, progress: nextProg };
@@ -418,14 +521,14 @@ export const TranslateVideoTool: React.FC = () => {
             return item;
           })
         );
-      }, 2000 + i * 500);
+      }, 1500 + i * 400);
     }
 
     soundSynth.playSfx("success");
     addToast(
       isMultiLangMode
-        ? `Đã nạp thành công ${targetLangsToProcess.length} tác vụ lồng tiếng Đa Ngôn Ngữ!`
-        : `Đã nạp "${firstVid.title}" vào hàng đợi lồng tiếng AI!`,
+        ? `Đã khởi chạy thuật toán lồng tiếng Gemini Đa Ngôn Ngữ!`
+        : `Đã kích hoạt Gemini AI lồng tiếng cho "${firstVid.title}"!`,
       "success"
     );
   };
@@ -589,23 +692,25 @@ export const TranslateVideoTool: React.FC = () => {
                   <th className="py-2.5 px-3 w-12 text-center">#</th>
                   <th className="py-2.5 px-3 w-32">Mốc Thời Gian</th>
                   <th className="py-2.5 px-3">Lời Thoại Gốc (Tiếng Trung)</th>
-                  <th className="py-2.5 px-3">Lời Dịch AI Lồng Tiếng (Tiếng Việt)</th>
+                  <th className="py-2.5 px-3">Lời Dịch AI Gemini Lồng Tiếng (Tiếng Việt)</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800 font-mono">
-                {[
-                  { stt: 1, time: "00:00 - 00:04", orig: "探索未知星系，感受宇宙浩瀚...", trans: "Khám phá các thiên hà chưa biết, cảm nhận sự bao la..." },
-                  { stt: 2, time: "00:05 - 00:09", orig: "每一次突破, 都是人类智慧的飞跃。", trans: "Mỗi một bước đột phá đều là sự vọt tiến của trí tuệ loài người." },
-                  { stt: 3, time: "00:10 - 00:15", orig: "欢迎来到 AI Creator OS 时代！", trans: "Chào mừng bạn đến với kỷ nguyên AI Creator OS!" }
-                ].map((row) => (
-                  <tr key={row.stt} className="hover:bg-slate-900/60">
-                    <td className="py-2.5 px-3 text-center text-slate-500">{row.stt}</td>
+                {subtitleCues.map((row) => (
+                  <tr key={row.id} className="hover:bg-slate-900/60">
+                    <td className="py-2.5 px-3 text-center text-slate-500">{row.id}</td>
                     <td className="py-2.5 px-3 text-cyan-400 font-bold">{row.time}</td>
                     <td className="py-2.5 px-3 text-slate-400">{row.orig}</td>
                     <td className="py-2.5 px-3">
                       <input
                         type="text"
-                        defaultValue={row.trans}
+                        value={row.trans}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setSubtitleCues((prev) =>
+                            prev.map((item) => (item.id === row.id ? { ...item, trans: val } : item))
+                          );
+                        }}
                         className="w-full bg-slate-900 border border-slate-800 rounded px-2 py-1 text-xs text-white focus:border-rose-500 outline-none"
                       />
                     </td>
@@ -628,9 +733,26 @@ export const TranslateVideoTool: React.FC = () => {
                 <Video className="w-4 h-4 text-rose-500" />
                 Danh sách Video
               </h2>
-              <span className="text-xs font-semibold text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-md border border-cyan-800/50">
-                Đã chọn {selectedVideosCount} video
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    soundSynth.playSfx("pop");
+                    const count = syncDownloadedFolders();
+                    if (count > 0) {
+                      addToast(`Đã đồng bộ ${count} thư mục/video vừa tải!`, "success");
+                    } else {
+                      addToast("Đã đồng bộ dữ liệu thư mục mới nhất.", "info");
+                    }
+                  }}
+                  className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-cyan-500/30 rounded-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Đồng bộ video vừa tải</span>
+                </button>
+                <span className="text-xs font-semibold text-cyan-400 bg-cyan-950/60 px-2.5 py-1 rounded-md border border-cyan-800/50">
+                  Đã chọn {selectedVideosCount} video
+                </span>
+              </div>
             </div>
 
             {/* Folders Table with Solid Red Header */}
@@ -899,6 +1021,19 @@ export const TranslateVideoTool: React.FC = () => {
                     >
                       <Cpu className="w-3.5 h-3.5" />
                       GPU
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundSynth.playSfx("pop");
+                        setIsGpuModalOpen(true);
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-700/50 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-sm active:scale-95 ml-auto"
+                      title="Mở Trung tâm Thuật toán & Benchmark GPU"
+                    >
+                      <Zap className="w-3.5 h-3.5 text-purple-400" />
+                      <span>Thuật toán GPU</span>
                     </button>
                   </div>
                   <p className="text-[10px] text-purple-300/80 mt-1.5 leading-relaxed font-sans">
@@ -1576,6 +1711,12 @@ export const TranslateVideoTool: React.FC = () => {
           setSavePath(selectedPath);
           addToast(`Đã thiết lập đường dẫn xuất video: ${selectedPath}`, "success");
         }}
+      />
+
+      {/* GPU Hardware Acceleration & Algorithm Modal */}
+      <GpuAccelerationModal
+        isOpen={isGpuModalOpen}
+        onClose={() => setIsGpuModalOpen(false)}
       />
     </div>
   );

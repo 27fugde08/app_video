@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { DownloaderBanner } from "./components/DownloaderBanner";
+import { DiskSpaceIndicator } from "./components/DiskSpaceIndicator";
 import { UrlInputCard } from "./components/UrlInputCard";
 import { AdvancedConfigPanel } from "./components/AdvancedConfigPanel";
 import { DownloaderQueueTable } from "./components/DownloaderQueueTable";
@@ -40,7 +41,13 @@ export const BatchDownloaderPro: React.FC = () => {
     handleClearQueue,
     handleToggleSelectAll,
     handleToggleSelect,
-    handleRemoveItem
+    handleRemoveItem,
+    handleClearSelection,
+    handleDeleteSelected,
+    handleRetryFailedTasks,
+    handleBatchRename,
+    handleBatchTransferToDubbing,
+    handleLoadMockTestData
   } = useBatchDownloader();
 
   const handleExportJson = () => {
@@ -172,6 +179,9 @@ export const BatchDownloaderPro: React.FC = () => {
             onSelectPlatform={setPlatformFilter}
           />
 
+          {/* Disk Space Indicator & Safety Guard Bar */}
+          <DiskSpaceIndicator currentPath={config.saveDirectory} />
+
           {/* Advanced Configuration Panel (Cookie, Proxy, Toggles) */}
           <AdvancedConfigPanel config={config} setConfig={setConfig} />
 
@@ -190,6 +200,7 @@ export const BatchDownloaderPro: React.FC = () => {
             onDownloadSelected={handleDownloadSelected}
             onDownloadAndDubPipeline={handleDownloadAndDubPipeline}
             onClearQueue={handleClearQueue}
+            onLoadMockTestData={handleLoadMockTestData}
           />
 
           {/* Downloader Queue Table */}
@@ -199,6 +210,11 @@ export const BatchDownloaderPro: React.FC = () => {
             onToggleSelectAll={handleToggleSelectAll}
             onToggleSelect={handleToggleSelect}
             onRemoveItem={handleRemoveItem}
+            onRetryFailedTasks={handleRetryFailedTasks}
+            onDeleteSelected={handleDeleteSelected}
+            onClearSelection={handleClearSelection}
+            onBatchRename={handleBatchRename}
+            onBatchTransferToDubbing={handleBatchTransferToDubbing}
             platformFilter={platformFilter}
             setPlatformFilter={setPlatformFilter}
             statusFilter={statusFilter}

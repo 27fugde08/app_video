@@ -66,12 +66,16 @@ export const TelemetryBar: React.FC<TelemetryBarProps> = ({ activeTab, onSelectT
       {/* GPU / VRAM Telemetry */}
       {gpu && (
         <div 
-          className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono border transition-all shadow-inner ${
+          onClick={() => {
+            soundSynth.playSfx("pop");
+            window.dispatchEvent(new CustomEvent("creatoros:open_gpu_modal"));
+          }}
+          className={`flex items-center gap-2 px-2.5 py-1 rounded-lg text-xs font-mono border transition-all shadow-inner cursor-pointer hover:scale-105 active:scale-95 ${
             isVramAlert 
               ? "bg-rose-500/20 border-rose-500/50 text-rose-300 animate-pulse glow-rose" 
-              : "bg-[#090c15] border-white/10 text-slate-300 hover:border-amber-500/40"
+              : "bg-[#090c15] border-white/10 text-slate-300 hover:border-purple-500/60 hover:text-purple-300"
           }`}
-          title={`${gpu.name}: ${gpu.vramUsed}MB / ${gpu.vramTotal}MB (${gpu.utilization}% Engine Load, ${gpu.temperature}°C)`}
+          title={`${gpu.name}: ${gpu.vramUsed}MB / ${gpu.vramTotal}MB (${gpu.utilization}% Engine Load, ${gpu.temperature}°C). Nhấp để mở Trung tâm Thuật toán & Benchmark GPU.`}
         >
           <Zap className={`w-3.5 h-3.5 ${isVramAlert ? "text-rose-400" : "text-amber-400"}`} />
           <div className="flex items-center gap-1.5">

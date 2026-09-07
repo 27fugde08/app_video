@@ -6,6 +6,10 @@ import {
   BatchStats
 } from "../types";
 import {
+  MOCK_DOWNLOAD_TEST_ITEMS,
+  MOCK_BACKEND_TEST_LOGS
+} from "../data/mockDownloaderTestData";
+import {
   downloaderService,
   scanUrls,
   deleteJob
@@ -299,6 +303,189 @@ export function useBatchDownloader() {
     });
   }, []);
 
+  // Action: Clear selection
+  const handleClearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  // Action: Delete Selected Items
+  const handleDeleteSelected = useCallback(() => {
+    if (selectedIds.size === 0) return;
+    soundSynth.playSfx("pop");
+    const count = selectedIds.size;
+    setItems((prev) => prev.filter((i) => !selectedIds.has(i.id)));
+    setSelectedIds(new Set());
+    addLog("info", `Đã xóa ${count} mục đã chọn khỏi hàng đợi.`);
+    addToast(`Đã xóa ${count} mục khỏi danh sách.`, "info");
+  }, [selectedIds, addLog, addToast]);
+
+  // Action: Retry Failed Items
+  const handleRetryFailedTasks = useCallback(() => {
+    soundSynth.playSfx("whoosh");
+    let count = 0;
+    setItems((prev) =>
+      prev.map((i) => {
+        if (i.status === "error" || i.status === "cancelled") {
+          count++;
+          return {
+            ...i,
+            status: "queued",
+            progress: 0,
+            error: undefined,
+            eta: "Đang xếp lại luồng...",
+            speed: "0 MB/s"
+          };
+        }
+        return i;
+      })
+    );
+    if (count > 0) {
+      addToast(`Đã đưa ${count} tác vụ lỗi/hủy vào lại hàng đợi sẵn sàng tải!`, "success");
+      addLog("info", `[Retry Engine] Đã phục hồi ${count} tác vụ lỗi/hủy vào hàng đợi.`);
+    } else {
+      addToast("Không có tác vụ lỗi nào trong danh sách.", "info");
+    }
+  }, [addToast, addLog]);
+
+  // Action: Batch Rename
+  const handleBatchRename = useCallback(
+    (renamedList: { id: string; newTitle: string; newFileName: string }[]) => {
+      const map = new Map(renamedList.map((r) => [r.id, r]));
+      setItems((prev) =>
+        prev.map((item) => {
+          const match = map.get(item.id);
+          if (match) {
+            return {
+              ...item,
+              title: match.newTitle,
+              filePath: item.filePath
+                ? item.filePath.replace(/[^\\]+$/, match.newFileName)
+                : `D:\\Downloads\\CreatorOS\\BatchVault\\${match.newFileName}`
+            };
+          }
+          return item;
+        })
+      );
+      addLog("success", `Đã áp dụng quy tắc đổi tên cho ${renamedList.length} video.`);
+    },
+    [addLog]
+  );
+
+  // Action: Transfer to AI Dubbing Studio
+  const handleBatchTransferToDubbing = useCallback(() => {
+    const selected = items.filter((i) => selectedIds.has(i.id));
+    if (selected.length === 0) return;
+    soundSynth.playSfx("cash");
+
+    // Persist downloaded items to localStorage for TranslateVideoTool
+    try {
+      const folderData = {
+        id: "f_downloaded_batchvault",
+        stt: 1,
+        folderName: "📁 Thư Mục Vừa Tải (BatchVault)",
+        count: selected.length,
+        isSelected: true,
+        videos: selected.map((s, idx) => ({
+          id: `dl_v_${s.id}`,
+          title: s.title.endsWith(".mp4") ? s.title : `${s.title}.mp4`,
+          duration: s.duration || "01:30",
+          size: s.fileSize || "45.2 MB",
+          filePath: s.filePath || `D:\\Downloads\\CreatorOS\\BatchVault\\${s.title}.mp4`,
+          status: "idle"
+        }))
+      };
+      
+      const existingRaw = localStorage.getItem("creatoros_downloaded_folders");
+      let existingFolders = [];
+      if (existingRaw) {
+        try { existingFolders = JSON.parse(existingRaw); } catch {}
+      }
+      
+      // Update or prepend folder
+      const filtered = existingFolders.filter((f: any) => f.id !== folderData.id);
+      const updatedFolders = [folderData, ...filtered];
+      localStorage.setItem("creatoros_downloaded_folders", JSON.stringify(updatedFolders));
+      
+      window.dispatchEvent(new CustomEvent("creatoros:transferred_videos", { detail: folderData }));
+      window.dispatchEvent(new CustomEvent("creatoros:video_downloaded", { detail: folderData }));
+    } catch (e) {
+      console.warn("Error persisting downloaded folders:", e);
+    }
+
+    addToast(
+      `Đã chuyển ${selected.length} video vừa tải sang Studio Dịch Lồng Tiếng AI!`,
+      "success"
+    );
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent("creatoros:navigate", { detail: "translate" }));
+    }, 600);
+  }, [items, selectedIds, addToast]);
+
+  // Action: Load Mock Test Data for Frontend <-> Backend testing
+  const handleLoadMockTestData = useCallback(() => {
+    soundSynth.playSfx("cash");
+    setItems(MOCK_DOWNLOAD_TEST_ITEMS);
+    setSelectedIds(new Set([MOCK_DOWNLOAD_TEST_ITEMS[0].id, MOCK_DOWNLOAD_TEST_ITEMS[1].id]));
+
+    // Inject rich test logs
+    MOCK_BACKEND_TEST_LOGS.forEach((l) => {
+      addLog(l.type, l.message);
+    });
+
+    // Sync mock downloaded items for TranslateVideoTool
+    try {
+      const mockFolder = {
+        id: "f_downloaded_batchvault",
+        stt: 1,
+        folderName: "📁 Thư Mục Vừa Tải (BatchVault)",
+        count: MOCK_DOWNLOAD_TEST_ITEMS.length,
+        isSelected: true,
+        videos: MOCK_DOWNLOAD_TEST_ITEMS.map((item) => ({
+          id: `vid_dl_${item.id}`,
+          title: item.title.endsWith(".mp4") ? item.title : `${item.title}.mp4`,
+          duration: item.duration || "02:15",
+          size: item.fileSize || "68.4 MB",
+          filePath: item.filePath || `D:\\Downloads\\CreatorOS\\BatchVault\\${item.title}.mp4`,
+          status: "idle"
+        }))
+      };
+      localStorage.setItem("creatoros_downloaded_folders", JSON.stringify([mockFolder]));
+      window.dispatchEvent(new CustomEvent("creatoros:video_downloaded", { detail: mockFolder }));
+    } catch {}
+
+    addToast(
+      "🧪 Đã nạp dữ liệu mẫu kiểm thử luồng Frontend ↔ Backend (6 trạng thái, log IPC, Demucs GPU lock)!",
+      "success"
+    );
+
+    // Dynamic ticker: Increment progress of downloading item to show active responsiveness
+    const timer = setInterval(() => {
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id === "test_job_102" && item.status === "downloading") {
+            const nextProgress = Math.min(100, item.progress + 6);
+            if (nextProgress >= 100) {
+              clearInterval(timer);
+              return {
+                ...item,
+                progress: 100,
+                status: "completed",
+                eta: "Hoàn tất",
+                speed: "0 MB/s"
+              };
+            }
+            return {
+              ...item,
+              progress: nextProgress,
+              speed: `${(15 + Math.random() * 4).toFixed(1)} MB/s (NVENC)`
+            };
+          }
+          return item;
+        })
+      );
+    }, 1800);
+  }, [addLog, addToast]);
+
   return {
     rawUrlInput,
     setRawUrlInput,
@@ -326,6 +513,12 @@ export function useBatchDownloader() {
     handleClearQueue,
     handleToggleSelectAll,
     handleToggleSelect,
-    handleRemoveItem
+    handleRemoveItem,
+    handleClearSelection,
+    handleDeleteSelected,
+    handleRetryFailedTasks,
+    handleBatchRename,
+    handleBatchTransferToDubbing,
+    handleLoadMockTestData
   };
 }

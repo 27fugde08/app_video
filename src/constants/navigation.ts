@@ -4,6 +4,7 @@ import {
   Clapperboard,
   Sparkles,
   Layers,
+  Server,
   Mic2,
   Volume2,
   TrendingUp,
@@ -227,6 +228,15 @@ export const NAVIGATION_CATEGORIES: NavCategory[] = [
         icon: Layers,
         badge: "Engine",
         badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/30"
+      },
+      {
+        id: "decoupled-queue",
+        label: "Kiến Trúc Web & Render Worker",
+        sublabel: "Tách rời API & Hàng đợi Redis BullMQ",
+        icon: Server,
+        badge: "Decoupled",
+        badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+        isNew: true
       },
       {
         id: "lan-cluster",

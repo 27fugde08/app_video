@@ -18,6 +18,10 @@ import aiRoutes from './routes/ai.routes.js';
 import vaultRoutes from './routes/vault.routes.js';
 import dubbingRoutes from './routes/dubbing.routes.js';
 import aiKeyRoutes from './routes/aiKey.routes.js';
+import jobsRoutes from './routes/jobs.routes.js';
+import videoJobRoutes from './routes/videoJob.routes.js';
+import { cleanupStaleWorkspaces } from './core/tempManager/tempCleaner.js';
+import { renderQueue } from './core/messageQueue.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -130,6 +134,8 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/vault', vaultRoutes);
 app.use('/api/dubbing', dubbingRoutes);
 app.use('/api/ai-keys', aiKeyRoutes);
+app.use('/api/jobs', jobsRoutes);
+app.use('/api/v1/jobs', videoJobRoutes);
 
 // 404 Not Found Handler
 app.use((req, res) => {
@@ -157,6 +163,8 @@ server.listen(PORT, HOST, () => {
   console.log(`  📦 Plugin Core: Lazy-Loading Mode (FFmpeg, Python, AI)`);
   console.log(`  ⚡ Ready to handle desktop RPC / HTTP connections`);
   console.log('======================================================\n');
+  // Safe Disk Hygiene: Sweep stale /tmp workspaces on boot
+  cleanupStaleWorkspaces().catch(() => {});
 });
 
 // Graceful Shutdown

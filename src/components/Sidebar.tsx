@@ -72,6 +72,14 @@ export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onSelectTab }) => {
           badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
         },
         {
+          id: "decoupled-queue",
+          label: "Web Server & Render Worker",
+          sublabel: "Decoupled Redis & BullMQ Queue",
+          icon: Layers,
+          badge: "Decoupled",
+          badgeColor: "bg-indigo-500/20 text-indigo-300 border-indigo-500/30",
+        },
+        {
           id: "lan-cluster",
           label: "Cụm Render LAN Cluster",
           sublabel: "Master-Worker & Chunk Segments",

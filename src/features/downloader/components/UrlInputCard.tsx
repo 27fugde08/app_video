@@ -30,6 +30,7 @@ interface UrlInputCardProps {
   onDownloadSelected: () => void;
   onDownloadAndDubPipeline?: () => void;
   onClearQueue: () => void;
+  onLoadMockTestData?: () => void;
 }
 
 export const UrlInputCard: React.FC<UrlInputCardProps> = ({
@@ -45,7 +46,8 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
   onStartScan,
   onDownloadSelected,
   onDownloadAndDubPipeline,
-  onClearQueue
+  onClearQueue,
+  onLoadMockTestData
 }) => {
   const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
 
@@ -172,8 +174,20 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
             title="Nạp liên kết mẫu 4 nền tảng"
           >
             <Sparkles className="w-3 h-3 text-violet-400" />
-            <span className="hidden sm:inline">Mẫu thử</span>
+            <span className="hidden sm:inline">Mẫu link</span>
           </button>
+
+          {onLoadMockTestData && (
+            <button
+              type="button"
+              onClick={onLoadMockTestData}
+              className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 via-rose-500/20 to-purple-500/20 hover:from-amber-500/30 hover:to-purple-500/30 text-amber-300 hover:text-amber-200 border border-amber-500/40 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Nạp dữ liệu mẫu 6 trạng thái để kiểm thử toàn diện luồng xử lý Frontend ↔ Backend"
+            >
+              <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
+              <span>🧪 Nạp Test Luồng (FE ↔ BE)</span>
+            </button>
+          )}
 
           {rawUrlInput && (
             <button
