@@ -1,0 +1,65 @@
+<UserControl x:Class="CreatorOS.Desktop.Wpf.Views.D3DVideoPlayer"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800"
+             Background="#0A0A0C"
+             SnapsToDevicePixels="True"
+             UseLayoutRounding="True">
+
+    <!-- ============================================================================== -->
+    <!-- CreatorOS Desktop - Principal Systems Engineer Guidelines (Karpathy Pattern)  -->
+    <!-- File: D3DVideoPlayer.xaml                                                     -->
+    <!-- Zero-Copy Direct3D 11 Surface -> WPF D3DImage Video Preview Viewport           -->
+    <!-- ============================================================================== -->
+
+    <Grid Background="#0A0A0C">
+        <!-- GPU Direct3D 11 Render Target Target Surface -->
+        <Image x:Name="D3DRenderImage" 
+               Stretch="Uniform" 
+               HorizontalAlignment="Center" 
+               VerticalAlignment="Center"
+               RenderOptions.BitmapScalingMode="Linear"
+               RenderOptions.EdgeMode="Aliased" />
+
+        <!-- Overlay HUD / Video Meta Info -->
+        <Border HorizontalAlignment="Right" VerticalAlignment="Top" 
+                Background="#80000000" 
+                CornerRadius="4" 
+                Padding="8,4" 
+                Margin="12">
+            <StackPanel Orientation="Horizontal">
+                <Border Width="8" Height="8" CornerRadius="4" Background="#10B981" VerticalAlignment="Center" Margin="0,0,6,0" />
+                <TextBlock x:Name="TxtGpuStatus" 
+                           Text="D3D11 ZERO-COPY (VRAM DIRECT)" 
+                           Foreground="#ECECED" 
+                           FontSize="10" 
+                           FontWeight="Bold" 
+                           FontFamily="Consolas, Segoe UI" />
+            </StackPanel>
+        </Border>
+
+        <!-- No Signal / Placeholder Placeholder -->
+        <Border x:Name="PlaceholderOverlay" 
+                Background="#121216" 
+                Visibility="Collapsed" 
+                HorizontalAlignment="Stretch" 
+                VerticalAlignment="Stretch">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Text="🎬" FontSize="36" HorizontalAlignment="Center" Margin="0,0,0,8" />
+                <TextBlock Text="Sẵn sàng nạp khung hình Direct3D 11" 
+                           Foreground="#9CA3AF" 
+                           FontSize="13" 
+                           FontWeight="SemiBold" 
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Zero CPU Copy • VRAM Direct Surface" 
+                           Foreground="#4B5563" 
+                           FontSize="11" 
+                           HorizontalAlignment="Center" 
+                           Margin="0,4,0,0" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>

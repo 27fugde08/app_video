@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- ============================================================================== -->
+  <!-- CreatorOS Desktop - Principal Systems Engineer Guidelines (Karpathy Pattern)  -->
+  <!-- Target: .NET 9 Windows Desktop Native Standalone Executable (Win-x64)          -->
+  <!-- ============================================================================== -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <LangVersion>13.0</LangVersion>
+    
+    <!-- Self-Contained & Ahead-Of-Time Optimization -->
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <SelfContained>true</SelfContained>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <PublishSingleFile>false</PublishSingleFile>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+
+    <!-- Windows Manifest Integration -->
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon Condition="Exists('Assets\icon.ico')">Assets\icon.ico</ApplicationIcon>
+    
+    <!-- Assembly Metadata -->
+    <AssemblyName>CreatorOS</AssemblyName>
+    <RootNamespace>CreatorOS.Desktop.Wpf</RootNamespace>
+    <Version>1.0.0</Version>
+    <Company>CreatorOS Inc.</Company>
+    <Product>CreatorOS Desktop</Product>
+    <Description>100% In-Process Windows Multimedia Automation &amp; Production OS</Description>
+  </PropertyGroup>
+
+  <!-- Core Community Toolkit & Modern DI Packages -->
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.2" />
+  </ItemGroup>
+
+  <!-- Auto-Copy Native Binaries & Tooling to Build Output -->
+  <ItemGroup>
+    <None Update="runtimes\win-x64\native\ffmpeg.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>true</Visible>
+    </None>
+    <None Update="runtimes\win-x64\native\ffprobe.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>true</Visible>
+    </None>
+    <None Update="runtimes\win-x64\native\yt-dlp.exe">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>true</Visible>
+    </None>
+    <None Update="Tools\**\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>true</Visible>
+    </None>
+  </ItemGroup>
+
+</Project>

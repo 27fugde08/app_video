@@ -12,8 +12,10 @@ import {
 import {
   downloaderService,
   scanUrls,
+  scanChannel,
   deleteJob
 } from "../services/downloaderService";
+import { SupportedPlatformId } from "../types";
 import { batchDownloaderWorkerService } from "../services/batchDownloaderWorkerService";
 import { soundSynth } from "../../../utils/audioUtils";
 import { useToast } from "../../../context/ToastContext";
@@ -125,6 +127,26 @@ export function useBatchDownloader() {
     };
   }, [addLog]);
 
+  // Listen for batch items dispatched from external tools (e.g. C# WPF Channel Scanner)
+  useEffect(() => {
+    const handleAddExternalItems = (event: Event) => {
+      const customEvent = event as CustomEvent<{ items: VideoDownloadItem[] }>;
+      if (customEvent.detail && Array.isArray(customEvent.detail.items) && customEvent.detail.items.length > 0) {
+        const incoming = customEvent.detail.items;
+        setItems((prev) => [...incoming, ...prev]);
+        setSelectedIds(new Set(incoming.map((i) => i.id)));
+        addLog("success", `[Nạp Kênh Tự Động] Đã nhận ${incoming.length} video từ bộ quét chuyên sâu.`);
+        soundSynth.playSfx("success");
+        addToast(`Đã nhận ${incoming.length} video từ bộ quét vào hàng đợi tải!`, "success");
+      }
+    };
+
+    window.addEventListener("creatoros:add_batch_items", handleAddExternalItems);
+    return () => {
+      window.removeEventListener("creatoros:add_batch_items", handleAddExternalItems);
+    };
+  }, [addLog, addToast]);
+
   // Keep worker concurrency in sync with config
   useEffect(() => {
     batchDownloaderWorkerService.setConcurrency(config.concurrency || 4);
@@ -166,21 +188,28 @@ export function useBatchDownloader() {
     };
   }, [items]);
 
-  // Action: Start Batch Scan via Backend API
-  const handleStartScan = useCallback(async () => {
-    if (detectedUrls.length === 0) {
+  // Action: Start Batch Scan via Backend API or Native Channel Engine
+  const handleStartScan = useCallback(async (urlsOverride?: string[]) => {
+    let targets = urlsOverride && urlsOverride.length > 0 ? urlsOverride : detectedUrls;
+    if (targets.length === 0 && rawUrlInput.trim()) {
+      targets = downloaderService.extractUrls(rawUrlInput);
+      if (targets.length === 0) {
+        targets = [rawUrlInput.trim()];
+      }
+    }
+
+    if (targets.length === 0) {
       soundSynth.playSfx("pop");
-      addToast("Vui lòng dán ít nhất 1 đường link hợp lệ vào khung nhập liệu!", "warning");
+      addToast("Vui lòng dán ít nhất 1 đường link hợp lệ hoặc tên kênh vào khung nhập liệu!", "warning");
       return;
     }
 
     setIsScanning(true);
     soundSynth.playSfx("pop");
-    addLog("info", `[IPC] Đang gửi yêu cầu quét metadata cho ${detectedUrls.length} liên kết tới backend...`);
+    addLog("info", `[IPC] Đang gửi yêu cầu quét metadata cho ${targets.length} liên kết/kênh tới bộ quét siêu tốc...`);
 
     try {
-      // Call actual backend scan API
-      const result = await scanUrls(detectedUrls, {
+      const result = await scanUrls(targets, {
         extractCover: true,
         detectAudio: true
       });
@@ -189,9 +218,9 @@ export function useBatchDownloader() {
         setItems((prev) => [...result.items, ...prev]);
         setSelectedIds(new Set(result.items.map((n) => n.id)));
         setRawUrlInput("");
-        addLog("success", `[IPC Quét xong] Đã nạp ${result.items.length} video với đầy đủ thông số độ phân giải và tác giả.`);
+        addLog("success", `[IPC Quét xong] Đã bóc tách thành công ${result.items.length} video với đầy đủ thông số độ phân giải và tác giả.`);
         soundSynth.playSfx("success");
-        addToast(`Đã thêm thành công ${result.items.length} video vào danh sách chờ tải!`, "success");
+        addToast(`Đã bóc tách thành công ${result.items.length} video vào danh sách chờ tải!`, "success");
       } else {
         throw new Error("Không thể trích xuất video từ danh sách liên kết.");
       }
@@ -201,7 +230,53 @@ export function useBatchDownloader() {
     } finally {
       setIsScanning(false);
     }
-  }, [detectedUrls, addLog, addToast]);
+  }, [detectedUrls, rawUrlInput, addLog, addToast]);
+
+  // Action: Scan an entire creator channel / playlist directly
+  const handleScanChannel = useCallback(async (
+    channelIdentifier: string, 
+    platform?: SupportedPlatformId, 
+    maxCount = 25
+  ) => {
+    if (!channelIdentifier.trim()) {
+      soundSynth.playSfx("pop");
+      addToast("Vui lòng nhập đường link hoặc ID kênh người sáng tạo!", "warning");
+      return [];
+    }
+
+    setIsScanning(true);
+    soundSynth.playSfx("pop");
+    addLog("info", `[Kênh Scanner] Đang quét kênh "${channelIdentifier}" (tối đa ${maxCount} video)...`);
+
+    try {
+      const result = await scanChannel(channelIdentifier, platform, maxCount);
+      if (result.success && result.items.length > 0) {
+        setItems((prev) => [...result.items, ...prev]);
+        setSelectedIds(new Set(result.items.map((n) => n.id)));
+        addLog("success", `[Kênh Scanner] Hoàn tất bóc tách ${result.items.length} video từ kênh ${channelIdentifier}.`);
+        soundSynth.playSfx("success");
+        addToast(`Đã thu thập ${result.items.length} video từ kênh vào hàng đợi!`, "success");
+        return result.items;
+      } else {
+        throw new Error("Không tìm thấy video trong kênh này.");
+      }
+    } catch (err: any) {
+      addLog("error", `Lỗi quét kênh: ${err.message}`);
+      addToast(`Lỗi quét kênh: ${err.message}`, "error");
+      return [];
+    } finally {
+      setIsScanning(false);
+    }
+  }, [addLog, addToast]);
+
+  // Action: Push externally scanned items into the batch queue
+  const addExternalScannedItems = useCallback((newItems: VideoDownloadItem[]) => {
+    if (!newItems || newItems.length === 0) return;
+    setItems((prev) => [...newItems, ...prev]);
+    setSelectedIds(new Set(newItems.map((n) => n.id)));
+    soundSynth.playSfx("success");
+    addToast(`Đã nạp ${newItems.length} video vào hàng đợi tải!`, "success");
+  }, [addToast]);
 
   // Action: Start Downloading Selected via Background Worker Service
   const handleDownloadSelected = useCallback(async () => {
@@ -545,6 +620,8 @@ export function useBatchDownloader() {
     addLog,
     stats,
     handleStartScan,
+    handleScanChannel,
+    addExternalScannedItems,
     handleDownloadSelected,
     handleCancelTask,
     handleCancelAll,

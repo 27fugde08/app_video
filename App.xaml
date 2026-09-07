@@ -1,0 +1,15 @@
+<Application x:Class="CreatorOS.Desktop.Wpf.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:CreatorOS.Desktop.Wpf">
+    <Application.Resources>
+        <!-- Modern Dark Theme Palette (60 FPS Native Rendering) -->
+        <SolidColorBrush x:Key="CanvasBackgroundBrush" Color="#0D0D11" />
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#16161D" />
+        <SolidColorBrush x:Key="AccentPrimaryBrush" Color="#6366F1" />
+        <SolidColorBrush x:Key="TextPrimaryBrush" Color="#ECECED" />
+        <SolidColorBrush x:Key="TextSecondaryBrush" Color="#9CA3AF" />
+        <SolidColorBrush x:Key="BorderSubtleBrush" Color="#272732" />
+        <SolidColorBrush x:Key="SuccessBrush" Color="#10B981" />
+    </Application.Resources>
+</Application>

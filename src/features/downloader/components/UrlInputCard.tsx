@@ -249,9 +249,9 @@ https://www.youtube.com/shorts/3fM4pU8qW4Y`}
           {/* Button 1: Bắt đầu quét */}
           <button
             onClick={onStartScan}
-            disabled={isScanning || detectedCount === 0}
+            disabled={isScanning || (detectedCount === 0 && !rawUrlInput.trim())}
             className={`px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer shadow-lg ${
-              isScanning || detectedCount === 0
+              isScanning || (detectedCount === 0 && !rawUrlInput.trim())
                 ? "bg-slate-800/80 text-slate-500 cursor-not-allowed border border-white/5"
                 : "bg-gradient-to-r from-cyan-500 via-blue-600 to-violet-600 hover:from-cyan-400 hover:to-violet-500 text-white border border-cyan-400/40 glow-cyan active:scale-95"
             }`}
@@ -262,9 +262,9 @@ https://www.youtube.com/shorts/3fM4pU8qW4Y`}
               <Play className="w-3.5 h-3.5 fill-current text-white" />
             )}
             <span>{isScanning ? "Đang bóc tách metadata..." : "Bắt đầu quét"}</span>
-            {detectedCount > 0 && !isScanning && (
+            {Math.max(detectedCount, rawUrlInput.trim() ? 1 : 0) > 0 && !isScanning && (
               <span className="px-1.5 py-0.2 rounded-full bg-white/20 text-white font-mono text-[10px]">
-                {detectedCount}
+                {detectedCount || 1}
               </span>
             )}
           </button>

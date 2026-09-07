@@ -10,13 +10,19 @@ import { useBatchDownloader } from "./hooks/useBatchDownloader";
 import { downloaderService } from "./services/downloaderService";
 import { soundSynth } from "../../utils/audioUtils";
 import { useToast } from "../../context/ToastContext";
-import { Download, FileJson, FileText, Sparkles, HardDrive, FolderSearch, Zap, Link, UserCheck, ShieldCheck, Search, Globe, Key, RefreshCw, Layers } from "lucide-react";
+import { VideoDownloadItem, SupportedPlatformId } from "./types";
+import { Download, FileJson, FileText, Sparkles, HardDrive, FolderSearch, Zap, Link, UserCheck, ShieldCheck, Search, Globe, Key, RefreshCw, Layers, CheckCircle, ExternalLink, ArrowRight, Eye, ThumbsUp, Clock } from "lucide-react";
 
 export const BatchDownloaderPro: React.FC = () => {
   const { addToast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<"urls" | "creator" | "network">("urls");
-  const [channelInput, setChannelInput] = useState<string>("@tiktok_creator_official");
+  const [channelInput, setChannelInput] = useState<string>("@mrbeast");
+  const [creatorPlatform, setCreatorPlatform] = useState<"tiktok" | "douyin" | "youtube" | "facebook">("tiktok");
+  const [creatorCount, setCreatorCount] = useState<number>(25);
+  const [scannedCreatorVideos, setScannedCreatorVideos] = useState<VideoDownloadItem[]>([]);
+  const [isScanningCreator, setIsScanningCreator] = useState<boolean>(false);
   const [isFolderPickerOpen, setIsFolderPickerOpen] = useState<boolean>(false);
+
   const {
     rawUrlInput,
     setRawUrlInput,
@@ -37,6 +43,7 @@ export const BatchDownloaderPro: React.FC = () => {
     logs,
     stats,
     handleStartScan,
+    handleScanChannel: scanChannelFromHook,
     handleDownloadSelected,
     handleClearQueue,
     handleToggleSelectAll,
@@ -71,23 +78,29 @@ export const BatchDownloaderPro: React.FC = () => {
     }, 1200);
   };
 
-  const handleScanChannel = () => {
+  const handleExecuteCreatorScan = async () => {
+    if (!channelInput.trim()) {
+      soundSynth.playSfx("pop");
+      addToast("Vui lòng nhập đường link hoặc ID kênh người sáng tạo!", "warning");
+      return;
+    }
+
+    setIsScanningCreator(true);
     soundSynth.playSfx("pop");
-    if (!channelInput.trim()) return;
-    addToast(`Đang quét toàn bộ video từ kênh ${channelInput}...`, "info");
-    const mockUrls = [
-      `https://www.tiktok.com/${channelInput}/video/7303728609955156531`,
-      `https://www.tiktok.com/${channelInput}/video/7303728609955156532`,
-      `https://www.tiktok.com/${channelInput}/video/7303728609955156533`,
-      `https://www.tiktok.com/${channelInput}/video/7303728609955156534`,
-      `https://www.tiktok.com/${channelInput}/video/7303728609955156535`
-    ];
-    setRawUrlInput(prev => prev ? `${prev}\n${mockUrls.join("\n")}` : mockUrls.join("\n"));
-    setTimeout(() => {
-      soundSynth.playSfx("success");
-      addToast(`Đã bóc tách thành công 5 video mới nhất từ kênh ${channelInput}`, "success");
-      setActiveSubTab("urls");
-    }, 1000);
+    addToast(`Đang quét kênh ${channelInput} (${creatorCount} video)...`, "info");
+
+    try {
+      const results = await scanChannelFromHook(channelInput, creatorPlatform, creatorCount);
+      if (results && results.length > 0) {
+        setScannedCreatorVideos(results);
+        soundSynth.playSfx("success");
+        addToast(`Đã bóc tách thành công ${results.length} video từ kênh ${channelInput}!`, "success");
+      }
+    } catch (err: any) {
+      addToast(`Lỗi quét kênh: ${err.message}`, "error");
+    } finally {
+      setIsScanningCreator(false);
+    }
   };
 
   return (
@@ -227,48 +240,237 @@ export const BatchDownloaderPro: React.FC = () => {
 
       {/* SUB TAB 2: CHANNEL & CREATOR SCRAPER */}
       {activeSubTab === "creator" && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-400 flex items-center justify-center">
-              <UserCheck className="w-5 h-5" />
+        <div className="space-y-4">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-violet-500/20 border border-violet-500/30 text-violet-400 flex items-center justify-center">
+                  <UserCheck className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">Quét Kênh Creator Hàng Loạt (Auto Scraper Pro)</h3>
+                  <p className="text-xs text-slate-400">Bóc tách tự động toàn bộ video từ ID/Profile TikTok, Douyin, YouTube Shorts, Facebook Reels</p>
+                </div>
+              </div>
+
+              {/* Platform Selector */}
+              <div className="flex items-center gap-1.5 p-1 bg-slate-950 border border-slate-800 rounded-xl">
+                {(["tiktok", "douyin", "youtube", "facebook"] as const).map((plat) => (
+                  <button
+                    key={plat}
+                    onClick={() => {
+                      setCreatorPlatform(plat);
+                      soundSynth.playSfx("pop");
+                    }}
+                    className={`px-3 py-1 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                      creatorPlatform === plat
+                        ? "bg-violet-600 text-white shadow-md shadow-violet-500/25"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {plat === "douyin" ? "Douyin 抖音" : plat}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">Quét Kênh Creator Hàng Loạt (Auto Scraper)</h3>
-              <p className="text-xs text-slate-400">Nhập ID Kênh / Profile URL TikTok, Douyin, Kuaishou để lấy tự động toàn bộ video</p>
+
+            {/* Presets & Quantity */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-slate-400 text-[11px]">Kênh mẫu gợi ý:</span>
+                <button
+                  onClick={() => {
+                    setChannelInput("@mrbeast");
+                    setCreatorPlatform("tiktok");
+                    soundSynth.playSfx("pop");
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono cursor-pointer transition-colors"
+                >
+                  @mrbeast
+                </button>
+                <button
+                  onClick={() => {
+                    setChannelInput("https://www.douyin.com/user/MS4wLjABAAAA_DouyinStar");
+                    setCreatorPlatform("douyin");
+                    soundSynth.playSfx("pop");
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono cursor-pointer transition-colors"
+                >
+                  Douyin Star Profile
+                </button>
+                <button
+                  onClick={() => {
+                    setChannelInput("https://www.youtube.com/@mkbhd");
+                    setCreatorPlatform("youtube");
+                    soundSynth.playSfx("pop");
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono cursor-pointer transition-colors"
+                >
+                  @mkbhd
+                </button>
+              </div>
+
+              <div className="flex items-center gap-1.5 text-xs">
+                <span className="text-slate-400 text-[11px]">Số lượng lấy:</span>
+                {[10, 25, 50, 100].map((cnt) => (
+                  <button
+                    key={cnt}
+                    onClick={() => {
+                      setCreatorCount(cnt);
+                      soundSynth.playSfx("pop");
+                    }}
+                    className={`px-2.5 py-0.5 rounded-md text-[11px] font-bold font-mono transition-all cursor-pointer ${
+                      creatorCount === cnt
+                        ? "bg-violet-500 text-white"
+                        : "bg-slate-800 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {cnt} video
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Input & Action */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              <input
+                type="text"
+                value={channelInput}
+                onChange={(e) => setChannelInput(e.target.value)}
+                placeholder="Nhập ID kênh (Ví dụ: @mrbeast hoặc https://www.douyin.com/user/...)"
+                className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-violet-500 font-mono"
+              />
+              <button
+                onClick={handleExecuteCreatorScan}
+                disabled={isScanningCreator || !channelInput.trim()}
+                className={`px-5 py-2.5 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg transition-all active:scale-95 shrink-0 ${
+                  isScanningCreator || !channelInput.trim()
+                    ? "bg-slate-800 text-slate-500 cursor-not-allowed"
+                    : "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 cursor-pointer shadow-violet-500/20"
+                }`}
+              >
+                {isScanningCreator ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
+                    <span>Đang bóc tách feed ({creatorCount} video)...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    <span>Bóc Tách Toàn Bộ Video Kênh ({creatorCount})</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+              <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Giới Hạn Bóc Tách</span>
+                <div className="text-xs font-bold text-violet-300">Tối đa {creatorCount} video / lần quét</div>
+              </div>
+              <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Xóa Watermark Logo</span>
+                <div className="text-xs font-bold text-emerald-400">100% Sạch Logo (Direct CDN HD)</div>
+              </div>
+              <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Trích Xuất Song Song</span>
+                <div className="text-xs font-bold text-cyan-400">MP4 HD + MP3 + Cover + Metadata</div>
+              </div>
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={channelInput}
-              onChange={(e) => setChannelInput(e.target.value)}
-              placeholder="Nhập ID kênh (Ví dụ: @tiktok_creator_official hoặc https://www.douyin.com/user/MS4w...)"
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-violet-500 font-mono"
-            />
-            <button
-              onClick={handleScanChannel}
-              className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-500 hover:to-purple-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-lg cursor-pointer transition-all active:scale-95 shrink-0"
-            >
-              <Search className="w-4 h-4" />
-              <span>Bóc Tách Toàn Bộ Video</span>
-            </button>
-          </div>
+          {/* Scanned Results Preview Section */}
+          {scannedCreatorVideos.length > 0 && (
+            <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5 text-emerald-400" />
+                  <div>
+                    <h4 className="text-sm font-bold text-white">
+                      Đã bóc tách thành công {scannedCreatorVideos.length} video từ kênh {channelInput}
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      Toàn bộ video đã được tự động thêm vào danh sách hàng đợi tải
+                    </p>
+                  </div>
+                </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-            <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Giới Hạn Tải Kênh</span>
-              <div className="text-xs font-bold text-violet-300">Không giới hạn (Toàn bộ feed)</div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      soundSynth.playSfx("pop");
+                      setActiveSubTab("urls");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <span>Xem trong Hàng Đợi ({items.length})</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      soundSynth.playSfx("cash");
+                      handleDownloadSelected();
+                      setActiveSubTab("urls");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-500/20 transition-all cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>⚡ Bắt Đầu Tải Ngay</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Video Cards Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-[460px] overflow-y-auto pr-1">
+                {scannedCreatorVideos.map((vid, idx) => (
+                  <div
+                    key={vid.id}
+                    className="bg-slate-950 border border-slate-800/80 hover:border-violet-500/50 rounded-xl overflow-hidden group transition-all"
+                  >
+                    <div className="relative aspect-video w-full bg-slate-900 overflow-hidden">
+                      <img
+                        src={vid.thumbnail}
+                        alt={vid.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+                      <span className="absolute bottom-1.5 right-1.5 px-1.5 py-0.5 rounded bg-black/70 text-white text-[10px] font-mono flex items-center gap-1">
+                        <Clock className="w-2.5 h-2.5 text-cyan-400" />
+                        {vid.duration}
+                      </span>
+                      <span className="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded bg-emerald-500/80 text-white text-[9px] font-bold">
+                        No-WM
+                      </span>
+                    </div>
+
+                    <div className="p-3 space-y-1.5">
+                      <p className="text-xs font-semibold text-slate-200 line-clamp-2 leading-relaxed" title={vid.title}>
+                        {vid.title}
+                      </p>
+
+                      <div className="flex items-center justify-between text-[11px] text-slate-400">
+                        <span className="truncate max-w-[120px]">{vid.author}</span>
+                        <span className="text-emerald-400 font-mono text-[10px]">{vid.fileSize}</span>
+                      </div>
+
+                      <div className="flex items-center justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-900">
+                        <span className="flex items-center gap-1">
+                          <Eye className="w-2.5 h-2.5" />
+                          {(vid.views || 100000).toLocaleString()}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ThumbsUp className="w-2.5 h-2.5" />
+                          {(vid.likes || 15000).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Xóa Watermark Logo</span>
-              <div className="text-xs font-bold text-emerald-400">Tự động (Pure HD No-WM)</div>
-            </div>
-            <div className="p-3.5 bg-slate-950/80 border border-slate-800/80 rounded-xl space-y-1">
-              <span className="text-[10px] text-slate-500 font-bold uppercase">Tách Metadata & Bio</span>
-              <div className="text-xs font-bold text-cyan-400">Trích xuất Caption + Hashtags</div>
-            </div>
-          </div>
+          )}
         </div>
       )}
 
