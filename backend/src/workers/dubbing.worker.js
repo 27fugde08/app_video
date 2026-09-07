@@ -14,6 +14,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import fs from 'node:fs';
 import { binaryResolver } from '../core/binaryResolver.js';
+import MasterVideoPipelineOrchestrator from '../services/masterVideoPipelineOrchestrator.js';
 
 export class DubbingWorker extends EventEmitter {
   /**
@@ -24,13 +25,14 @@ export class DubbingWorker extends EventEmitter {
     super();
     this.job = job;
     this.options = {
-      outputDir: options.outputDir || process.env.EXPORT_VAULT_DIR || path.join(process.cwd(), 'vault', 'dubbed'),
+      outputDir: options.outputDir || process.env.EXPORT_VAULT_DIR || path.join(process.cwd(), 'Videos', 'CreatorOS_Exports'),
       scriptsDir: path.join(process.cwd(), 'backend', 'scripts'),
       modelsDir: path.join(process.cwd(), 'models'),
       ...options
     };
 
     this.activeChild = null;
+    this.activeOrchestrator = null;
     this.isCanceled = false;
   }
 
@@ -57,6 +59,39 @@ export class DubbingWorker extends EventEmitter {
     let synthesizedVoicePath = path.join(this.options.outputDir, `${id}_dubbed_voice.wav`);
 
     try {
+      const orchestrator = new MasterVideoPipelineOrchestrator(this.job, {
+        outputDir: this.options.outputDir,
+        scriptsDir: this.options.scriptsDir,
+        modelsDir: this.options.modelsDir
+      });
+      this.activeOrchestrator = orchestrator;
+      orchestrator.on('progress', (data) => {
+        this._emitProgress(data.progress, '--', data.message);
+        this._emitPhase(data.stage, data.message);
+      });
+      orchestrator.on('log', (data) => this.emit('log', data));
+
+      const pipelineResult = await orchestrator.execute();
+      this.activeOrchestrator = null;
+      outFinalVideo = pipelineResult.outputPath;
+      synthesizedVoicePath = pipelineResult.audioPath;
+      const orchestratedResult = {
+        jobId: id,
+        sourceVideo: filePath,
+        outputPath: outFinalVideo,
+        audioPath: synthesizedVoicePath,
+        sourceLang,
+        targetLang,
+        voiceId,
+        modelType,
+        hardwareMode: useGpu ? 'GPU NVENC/CPU fallback' : 'CPU Software',
+        durationMs: Date.now() - startTime,
+        completedAt: new Date().toISOString()
+      };
+      this._emitProgress(100, '00:00', 'Hoan thanh, mo thu muc video thanh pham.');
+      this.emit('completed', orchestratedResult);
+      return orchestratedResult;
+
       // Execute Python Video Dubbing & Lip-Sync Background Worker Pipeline
       const unifiedWorkerScript = path.join(this.options.scriptsDir, 'dubbing_pipeline_worker.py');
 
@@ -446,6 +481,10 @@ export class DubbingWorker extends EventEmitter {
    */
   cancel() {
     this.isCanceled = true;
+    if (this.activeOrchestrator) {
+      this.activeOrchestrator.cancel('Nguoi dung huy job');
+      this.activeOrchestrator = null;
+    }
     if (this.activeChild) {
       try {
         this.activeChild.kill('SIGKILL');

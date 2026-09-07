@@ -239,7 +239,9 @@ export async function scanUrls(
             url: raw.url,
             platform,
             title: raw.title || `Video ${platform.toUpperCase()}`,
-            author: raw.author || `@creator_${platform}`,
+            author: typeof raw.author === "string"
+              ? raw.author
+              : raw.author?.username || raw.author?.name || `@creator_${platform}`,
             thumbnail: raw.coverUrl || SAMPLE_METADATA_POOL[Math.floor(Math.random() * SAMPLE_METADATA_POOL.length)].thumbnail,
             duration: raw.duration || "00:45",
             durationSec: raw.durationSec || 45,

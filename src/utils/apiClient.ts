@@ -1,6 +1,6 @@
 // Centralized Native Desktop IPC & Local WebSocket Bridge Configuration
 
-export const BACKEND_BASE_URL = "";
+export const BACKEND_BASE_URL = "http://127.0.0.1:5000";
 export const BACKEND_WS_URL = "ws://127.0.0.1:8765";
 
 /**

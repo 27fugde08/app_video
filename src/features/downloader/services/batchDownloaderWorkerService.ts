@@ -185,11 +185,11 @@ class BatchDownloaderWorkerService {
   ): Promise<{ filePath: string }> {
     const jobId = item.id;
     const saveDir = config.saveDirectory || 'D:\\Downloads\\CreatorOS\\BatchVault';
-    const finalPath = `${saveDir}\\${jobId}.mp4`;
+    let backendJobId: string | undefined;
 
     // Send start signal to backend QueueManager if available
     try {
-      fetch(getApiUrl('/api/downloader/start'), {
+      const response = await fetch(getApiUrl('/api/downloader/start'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -197,47 +197,63 @@ class BatchDownloaderWorkerService {
           config: {
             saveDirectory: saveDir,
             cookieHeader: config.cookieHeader,
-            proxyServer: config.proxyServer,
+            proxy: config.proxyServer?.split(' ')[0],
             removeWatermark: config.removeWatermark
           }
         }),
         signal: token.abortController.signal
-      }).catch(() => {
-        // Fallback to client-worker execution if backend API is offline
       });
+      if (response.ok) {
+        const payload = await response.json();
+        backendJobId = payload.jobs?.[0]?.id;
+      }
     } catch {
-      // Ignored
+      // Keep the local progress fallback when the backend is unavailable.
     }
 
-    // High performance stream chunk ticker with cancellation awareness
-    const totalSize = item.fileSizeBytes || 45 * 1024 * 1024;
-    const totalMb = Math.round(totalSize / (1024 * 1024));
-    let downloadedMb = 0;
+    if (!backendJobId) {
+      throw new Error('Backend không tạo được tác vụ tải video. Không tạo file giả.');
+    }
 
-    for (let percent = 10; percent <= 100; percent += 15) {
+    // Follow the real backend job so the UI only reports success for a real file.
+    for (;;) {
       token.throwIfCancellationRequested();
+      const statusResponse = await fetch(getApiUrl('/api/downloader/status'), {
+        signal: token.abortController.signal
+      });
+      if (!statusResponse.ok) {
+        throw new Error(`Không lấy được trạng thái tải video (HTTP ${statusResponse.status}).`);
+      }
 
-      downloadedMb = Math.min(totalMb, Math.round((percent / 100) * totalMb));
-      const speedMb = (12.5 + Math.random() * 8.5).toFixed(1);
-      const remainingMb = totalMb - downloadedMb;
-      const etaSec = Math.max(0, Math.round(remainingMb / parseFloat(speedMb)));
+      const statusPayload = await statusResponse.json();
+      const backendJob = statusPayload.jobs?.find((job: any) => job.id === backendJobId);
+      if (!backendJob) {
+        throw new Error(`Không tìm thấy tác vụ tải ${backendJobId} trên backend.`);
+      }
 
+      const totalSizeMb = item.fileSizeBytes ? item.fileSizeBytes / (1024 * 1024) : item.fileSize ? parseFloat(item.fileSize) : 0;
       onProgress({
         jobId,
-        progress: percent,
-        speed: `${speedMb} MB/s`,
-        downloadedMb,
-        totalSizeMb: totalMb,
-        etaSeconds: etaSec,
-        phase: percent >= 100 ? 'transcoding' : 'downloading'
+        progress: Math.min(99, backendJob.progress || 0),
+        speed: backendJob.speed || 'Đang tải...',
+        downloadedMb: totalSizeMb ? (totalSizeMb * (backendJob.progress || 0)) / 100 : undefined,
+        totalSizeMb: totalSizeMb || undefined,
+        etaSeconds: backendJob.etaSeconds,
+        phase: backendJob.phase === 'transcoding' ? 'transcoding' : 'downloading'
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 300));
+      if (backendJob.status === 'completed') {
+        if (!backendJob.outputPath) {
+          throw new Error('Backend báo hoàn tất nhưng không trả về đường dẫn file.');
+        }
+        return { filePath: backendJob.outputPath };
+      }
+      if (backendJob.status === 'failed' || backendJob.status === 'canceled') {
+        throw new Error(backendJob.error || 'Backend không tải được video.');
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 700));
     }
-
-    token.throwIfCancellationRequested();
-
-    return { filePath: finalPath };
   }
 
   /**
@@ -278,15 +294,33 @@ class BatchDownloaderWorkerService {
 
   // Private event emitters
   private emitProgress(payload: ProgressPayload): void {
-    for (const cb of this.progressListeners) cb(payload);
+    for (const cb of this.progressListeners) {
+      try {
+        cb(payload);
+      } catch (error) {
+        console.error('[WorkerService] Progress listener failed:', error);
+      }
+    }
   }
 
   private emitState(payload: TaskStatePayload): void {
-    for (const cb of this.stateListeners) cb(payload);
+    for (const cb of this.stateListeners) {
+      try {
+        cb(payload);
+      } catch (error) {
+        console.error('[WorkerService] State listener failed:', error);
+      }
+    }
   }
 
   private emitLog(type: 'info' | 'success' | 'warning' | 'error' | 'nvenc', message: string): void {
-    for (const cb of this.logListeners) cb(type, message);
+    for (const cb of this.logListeners) {
+      try {
+        cb(type, message);
+      } catch (error) {
+        console.error('[WorkerService] Log listener failed:', error);
+      }
+    }
   }
 }
 

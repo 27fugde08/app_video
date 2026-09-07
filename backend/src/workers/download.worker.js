@@ -21,7 +21,7 @@ export class DownloadWorker extends EventEmitter {
     this.job = job;
     this.options = {
       timeoutMs: options.timeoutMs || 600000, // 10 minutes max
-      outputDir: options.outputDir || process.env.EXPORT_VAULT_DIR || path.join(process.cwd(), 'vault'),
+      outputDir: options.outputDir || job.config?.saveDirectory || process.env.EXPORT_VAULT_DIR || path.join(process.cwd(), 'vault'),
       ...options
     };
 
@@ -120,6 +120,7 @@ export class DownloadWorker extends EventEmitter {
       '--no-playlist',
       '--newline',
       '--no-check-certificates',
+      '--merge-output-format', 'mp4',
       '-o', outputPattern,
       url
     ];
@@ -144,9 +145,9 @@ export class DownloadWorker extends EventEmitter {
         processStarted = false;
       }
 
-      // Fallback Simulator if binary executable is not present on user's machine yet
+      // Never report a simulated download as a real local file.
       if (!processStarted || !this.childProcess.pid) {
-        return this._runSimulatedDownload(jobId, resolve, reject);
+        return reject(new Error(`Không thể khởi chạy yt-dlp (${executablePath}).`));
       }
 
       // Parse realtime progress output from yt-dlp stdout
@@ -155,18 +156,22 @@ export class DownloadWorker extends EventEmitter {
         this._parseYtDlpProgress(jobId, line);
       });
 
-      this.childProcess.on('error', () => {
-        // Fallback to simulation if binary execution fails on local OS
-        this._runSimulatedDownload(jobId, resolve, reject);
+      this.childProcess.on('error', (error) => {
+        this.childProcess = null;
+        reject(new Error(`yt-dlp không chạy được: ${error.message}`));
       });
 
       this.childProcess.on('close', (code) => {
         this.childProcess = null;
         if (code === 0) {
-          resolve(path.join(this.options.outputDir, `${jobId}_raw.mp4`));
+          const outputPath = path.join(this.options.outputDir, `${jobId}_raw.mp4`);
+          if (!fs.existsSync(outputPath) || fs.statSync(outputPath).size === 0) {
+            reject(new Error(`yt-dlp kết thúc nhưng không tạo được file: ${outputPath}`));
+            return;
+          }
+          resolve(outputPath);
         } else {
-          // Fallback gracefully to simulated artifact
-          this._runSimulatedDownload(jobId, resolve, reject);
+          reject(new Error(`yt-dlp kết thúc với mã lỗi ${code}.`));
         }
       });
     });
@@ -200,7 +205,7 @@ export class DownloadWorker extends EventEmitter {
     const outVideoPath = path.join(this.options.outputDir, `${jobId}_hd.mp4`);
     const outAudioPath = config.extractMp3 ? path.join(this.options.outputDir, `${jobId}_audio.mp3`) : null;
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       let progress = 90;
       const interval = setInterval(() => {
         if (this.isCanceled) {
@@ -219,10 +224,15 @@ export class DownloadWorker extends EventEmitter {
 
         if (progress >= 99) {
           clearInterval(interval);
-          resolve({
-            videoPath: outVideoPath,
-            audioPath: outAudioPath
-          });
+          try {
+            if (!fs.existsSync(inputPath)) {
+              throw new Error(`Nguồn video không tồn tại: ${inputPath}`);
+            }
+            fs.copyFileSync(inputPath, outVideoPath);
+            resolve({ videoPath: outVideoPath, audioPath: null });
+          } catch (error) {
+            reject(error);
+          }
         }
       }, 200);
     });

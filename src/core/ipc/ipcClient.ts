@@ -93,9 +93,11 @@ class DesktopIPCClient {
     }
 
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       'X-CreatorOS-Client': 'Desktop-Renderer-V1'
     };
+    if (body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     const res = await fetch(url, {
       method,

@@ -128,7 +128,10 @@ function createWindow() {
   ipcMain.handle('open-file', async (event, filePath) => {
     try {
       if (filePath && fs.existsSync(filePath)) {
-        shell.showItemInFolder(filePath);
+        const openError = await shell.openPath(filePath);
+        if (openError) {
+          throw new Error(openError);
+        }
         return { success: true, path: filePath };
       }
       

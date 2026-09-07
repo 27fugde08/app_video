@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   FolderOpen,
   UploadCloud,
@@ -48,6 +48,7 @@ import {
 import { soundSynth } from "../utils/audioUtils";
 import { useToast } from "../context/ToastContext";
 import { useQueue } from "../context/QueueContext";
+import { downloaderService } from "../features/downloader/services/downloaderService";
 
 export interface DownloadedFolderVideo {
   id: string;
@@ -254,6 +255,42 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
   const [platformFilter, setPlatformFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
+
+  useEffect(() => {
+    const syncDownloadedFolder = (event?: Event) => {
+      try {
+        const eventFolder = (event as CustomEvent | undefined)?.detail;
+        const storedFolders = JSON.parse(localStorage.getItem("creatoros_downloaded_folders") || "[]");
+        const folder = eventFolder || storedFolders[0];
+        if (!folder?.id || !Array.isArray(folder.videos)) return;
+
+        const normalizedFolder: DownloadedFolderItem = {
+          id: folder.id,
+          stt: 1,
+          name: folder.name || folder.folderName || "Thư Mục Vừa Tải",
+          videoCount: folder.videoCount || folder.count || folder.videos.length,
+          path: folder.path || "D:\\Downloads\\CreatorOS\\BatchVault",
+          platform: folder.platform || folder.videos[0]?.platform || "general",
+          createdAt: folder.createdAt || new Date().toLocaleString("vi-VN"),
+          totalSize: folder.totalSize || "0 MB",
+          coverImage: folder.coverImage || folder.videos[0]?.thumbnail || "",
+          videos: folder.videos
+        };
+
+        setFolders((previous) => [normalizedFolder, ...previous.filter((item) => item.id !== normalizedFolder.id)]);
+      } catch (error) {
+        console.warn("Failed to sync downloaded catalog:", error);
+      }
+    };
+
+    syncDownloadedFolder();
+    window.addEventListener("creatoros:video_downloaded", syncDownloadedFolder);
+    window.addEventListener("storage", syncDownloadedFolder);
+    return () => {
+      window.removeEventListener("creatoros:video_downloaded", syncDownloadedFolder);
+      window.removeEventListener("storage", syncDownloadedFolder);
+    };
+  }, []);
 
   // Modals & Drawers
   const [viewingFolder, setViewingFolder] = useState<DownloadedFolderItem | null>(null);
@@ -1864,9 +1901,10 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
               {/* Actions Footer */}
               <div className="flex items-center justify-between pt-2">
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     soundSynth.playSfx("pop");
-                    addToast(`Đã mở tệp video trong trình phát mặc định của hệ thống!`, "info");
+                    const result = await downloaderService.openFileOrFolder(activePreviewVideo.filePath);
+                    addToast(result.message, result.success ? "success" : "error");
                   }}
                   className="px-3.5 py-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 cursor-pointer flex items-center gap-1.5"
                 >

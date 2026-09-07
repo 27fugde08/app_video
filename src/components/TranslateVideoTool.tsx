@@ -25,6 +25,7 @@ import {
   ExternalLink,
   Layers,
   ArrowRight,
+  ArrowLeftRight,
   Info,
   Clock,
   Video,
@@ -45,6 +46,7 @@ import { useToast } from "../context/ToastContext";
 import { useQueue } from "../context/QueueContext";
 import { dubbingService } from "../features/dubbing/services/dubbingService";
 import { ipcClient } from "../core/ipc/ipcClient";
+import { getApiUrl } from "../utils/apiClient";
 import { geminiDubbingService } from "../services/geminiDubbingService";
 import { GpuAccelerationModal } from "./GpuAccelerationModal";
 
@@ -474,14 +476,66 @@ export const TranslateVideoTool: React.FC = () => {
       }
     };
 
+    const trackDubbingJob = async (jobId: string, queueItem: DubbingQueueItem) => {
+      for (;;) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const response = await fetch(getApiUrl("/api/dubbing/status"));
+        if (!response.ok) throw new Error(`Khong lay duoc trang thai job ${jobId}.`);
+        const payload = await response.json();
+        const job = payload.jobs?.find((item: any) => item.id === jobId);
+        if (!job) throw new Error(`Khong tim thay job ${jobId}.`);
+
+        setQueueList((prev) => prev.map((item) => item.id === jobId
+          ? { ...item, progress: Math.min(99, Math.round(job.progress || 0)), status: "processing" }
+          : item));
+
+        if (job.status === "completed") {
+          setQueueList((prev) => prev.filter((item) => item.id !== jobId));
+          setHistoryList((prev) => [{ ...queueItem, progress: 100, status: "completed" }, ...prev]);
+          soundSynth.playSfx("success");
+          addToast(`Hoan tat pipeline AI: "${queueItem.videoTitle}"`, "success");
+          return;
+        }
+        if (job.status === "failed" || job.status === "canceled") {
+          setQueueList((prev) => prev.map((item) => item.id === jobId
+            ? { ...item, status: "failed", progress: Math.round(job.progress || 0) }
+            : item));
+          throw new Error(job.error || `Job ${jobId} that bai.`);
+        }
+      }
+    };
+
+    const runningJobs: Promise<void>[] = [];
     for (let i = 0; i < targetLangsToProcess.length; i++) {
       const langCode = targetLangsToProcess[i];
       const langLabel = getLangLabel(langCode);
       const voiceName = getMatchingVoice(langCode);
 
+      const startResponse = await fetch(getApiUrl("/api/dubbing/start"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filePath: firstVid.filePath,
+          sourceLang: "auto",
+          targetLang: langCode,
+          voiceId: selectedVoiceId,
+          modelType: "turbo",
+          useGpu: true,
+          enableLipSync: true,
+          apiKey: availableAiKeys[0] || ""
+        })
+      });
+      if (!startResponse.ok) {
+        const errorPayload = await startResponse.json().catch(() => ({}));
+        throw new Error(errorPayload.error || `Khong the khoi dong pipeline ${langCode}.`);
+      }
+      const startPayload = await startResponse.json();
+      const backendJob = startPayload.jobs?.[0];
+      if (!backendJob?.id) throw new Error("Backend khong tra ve ID job lồng tiếng.");
+
       const newItem: DubbingQueueItem = {
-        id: `queue_${Date.now()}_${langCode}`,
-        stt: queueList.length + i + 1,
+        id: backendJob.id,
+        stt: i + 1,
         videoTitle: `[${langCode.toUpperCase()}] ${firstVid.title}`,
         folderName: currentFolder.folderName,
         startTime: new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }),
@@ -499,30 +553,10 @@ export const TranslateVideoTool: React.FC = () => {
         status: "running",
         progress: 30
       });
-
-      // Processing progression
-      const interval = setInterval(() => {
-        setQueueList((prev) =>
-          prev.map((item) => {
-            if (item.id === newItem.id) {
-              const nextProg = item.progress + 25;
-              if (nextProg >= 100) {
-                clearInterval(interval);
-                setHistoryList((h) => [
-                  { ...item, progress: 100, status: "completed" },
-                  ...h
-                ]);
-                soundSynth.playSfx("success");
-                addToast(`🎉 Gemini Lồng tiếng AI hoàn tất [${langLabel}] cho "${firstVid.title}"!`, "success");
-                return { ...item, progress: 100, status: "completed" };
-              }
-              return { ...item, progress: nextProg };
-            }
-            return item;
-          })
-        );
-      }, 1500 + i * 400);
+      runningJobs.push(trackDubbingJob(backendJob.id, newItem));
     }
+
+    await Promise.allSettled(runningJobs);
 
     soundSynth.playSfx("success");
     addToast(
@@ -844,15 +878,19 @@ export const TranslateVideoTool: React.FC = () => {
             </div>
 
             {/* Queue / History Table with Solid Red Header */}
-            <div className="rounded-lg border border-slate-800 overflow-hidden shadow-md bg-slate-950">
-              <table className="w-full text-left border-collapse">
+            <div className="mb-2 flex items-center justify-end gap-1.5 text-[10px] text-slate-500 sm:hidden">
+              <ArrowLeftRight className="w-3 h-3" />
+              <span>Kéo ngang để xem nút thao tác</span>
+            </div>
+            <div className="rounded-lg border border-slate-800 overflow-x-auto overscroll-x-contain shadow-md bg-slate-950">
+              <table className="w-full min-w-[680px] text-left border-collapse">
                 <thead className="bg-[#ff2b54] text-white">
                   <tr className="text-xs font-bold uppercase tracking-wider">
                     <th className="py-2.5 px-3 w-12 text-center">STT</th>
                     <th className="py-2.5 px-3">Tên video</th>
                     <th className="py-2.5 px-3 text-center w-24">Bắt đầu lúc</th>
                     <th className="py-2.5 px-3 text-center w-28">Trạng thái</th>
-                    <th className="py-2.5 px-3 text-center w-24">Thao tác</th>
+                    <th className="sticky right-0 z-10 py-2.5 px-3 text-center w-24 bg-[#ff2b54]">Thao tác</th>
                   </tr>
                 </thead>
 
@@ -888,7 +926,7 @@ export const TranslateVideoTool: React.FC = () => {
                               <span className="text-emerald-400 font-bold text-[11px]">Hoàn tất</span>
                             )}
                           </td>
-                          <td className="py-3 px-3 text-center">
+                          <td className="sticky right-0 z-[1] py-3 px-3 text-center bg-slate-950">
                             <button
                               onClick={() => {
                                 setQueueList((prev) => prev.filter((q) => q.id !== item.id));
@@ -916,7 +954,7 @@ export const TranslateVideoTool: React.FC = () => {
                             ✓ Đã lồng tiếng
                           </span>
                         </td>
-                        <td className="py-3 px-3 text-center">
+                        <td className="sticky right-0 z-[1] py-3 px-3 text-center bg-slate-950">
                           <div className="flex items-center justify-center gap-1.5">
                             <button
                               onClick={() => {

@@ -20,8 +20,8 @@ import { useToast } from "../../../context/ToastContext";
 
 const DEFAULT_CONFIG: DownloaderConfig = {
   saveDirectory: "D:\\Downloads\\CreatorOS\\BatchVault",
-  cookieHeader: "passport_csrf_token=9fa81b2; sessionid=cr_892246381;",
-  proxyServer: "http://127.0.0.1:7890 (Clash Auto-Rotate)",
+  cookieHeader: "",
+  proxyServer: "",
   concurrency: 4,
   removeWatermark: true,
   extractMp3: true,
@@ -224,7 +224,45 @@ export function useBatchDownloader() {
         batchDownloaderWorkerService.executeTask(item, config)
       );
 
-      await Promise.allSettled(tasks);
+      const results = await Promise.allSettled(tasks);
+
+      const downloadedVideos = toDownload.map((item, index) => {
+        const result = results[index]?.status === "fulfilled" ? results[index].value : undefined;
+        return {
+          id: `dl_v_${item.id}`,
+          videoId: item.id,
+          title: item.title.endsWith(".mp4") ? item.title : `${item.title}.mp4`,
+          thumbnail: item.thumbnail,
+          duration: item.duration,
+          resolution: item.resolution,
+          fileSize: item.fileSize,
+          platform: item.platform,
+          views: item.views || 0,
+          likes: item.likes || 0,
+          downloadDate: new Date().toLocaleDateString("vi-VN"),
+          filePath: result?.filePath || item.filePath || `${config.saveDirectory}\\${item.id}.mp4`,
+          hasAudioExtracted: config.extractMp3
+        };
+      });
+      const folderData = {
+        id: "f_downloaded_batchvault",
+        stt: 1,
+        name: "Thư Mục Vừa Tải (BatchVault)",
+        videoCount: downloadedVideos.length,
+        path: config.saveDirectory,
+        platform: downloadedVideos[0]?.platform || "general",
+        createdAt: new Date().toLocaleString("vi-VN"),
+        totalSize: `${downloadedVideos.reduce((total, video) => total + (parseFloat(video.fileSize) || 0), 0).toFixed(1)} MB`,
+        coverImage: downloadedVideos[0]?.thumbnail || "",
+        videos: downloadedVideos
+      };
+      const existingRaw = localStorage.getItem("creatoros_downloaded_folders");
+      const existingFolders = existingRaw ? JSON.parse(existingRaw) : [];
+      localStorage.setItem(
+        "creatoros_downloaded_folders",
+        JSON.stringify([folderData, ...existingFolders.filter((folder: any) => folder.id !== folderData.id)])
+      );
+      window.dispatchEvent(new CustomEvent("creatoros:video_downloaded", { detail: folderData }));
 
       soundSynth.playSfx("success");
       addToast(`Đã hoàn thành xử lý hàng đợi ${toDownload.length} tác vụ!`, "success");

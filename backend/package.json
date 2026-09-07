@@ -7,7 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test:flow": "node test/test-daemon-flow.js"
+    "test:flow": "node test/test-daemon-flow.js",
+    "test:orchestrator": "node --test test/master-video-pipeline-orchestrator.test.js"
   },
   "keywords": [
     "creatoros",
