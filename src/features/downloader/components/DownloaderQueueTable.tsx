@@ -18,7 +18,12 @@ import {
   FileSignature,
   Sparkles,
   CheckSquare,
-  X
+  X,
+  FileSpreadsheet,
+  FileJson,
+  TrendingUp,
+  SlidersHorizontal,
+  ChevronRight
 } from "lucide-react";
 import { VideoDownloadItem } from "../types";
 import { soundSynth } from "../../../utils/audioUtils";
@@ -32,12 +37,13 @@ interface DownloaderQueueTableProps {
   selectedIds: Set<string>;
   onToggleSelectAll: () => void;
   onToggleSelect: (id: string) => void;
+  onSelectSpecificIds?: (ids: string[]) => void;
   onRemoveItem: (id: string) => void;
   onRetryFailedTasks?: () => void;
   onDeleteSelected?: () => void;
   onClearSelection?: () => void;
   onBatchRename?: (renamedList: { id: string; newTitle: string; newFileName: string }[]) => void;
-  onBatchTransferToDubbing?: () => void;
+  onBatchTransferToDubbing?: (item?: VideoDownloadItem) => void;
   platformFilter: string;
   setPlatformFilter: (val: string) => void;
   statusFilter: string;
@@ -51,6 +57,7 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
   selectedIds,
   onToggleSelectAll,
   onToggleSelect,
+  onSelectSpecificIds,
   onRemoveItem,
   onRetryFailedTasks,
   onDeleteSelected,
@@ -82,13 +89,50 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
     addToast(result.message, result.success ? "success" : "info");
   };
 
+  const handleExportCsv = () => {
+    if (items.length === 0) return;
+    soundSynth.playSfx("pop");
+    downloaderService.exportCatalog(items, "csv");
+    addToast("Đã xuất danh mục video sang tệp Excel (.CSV) kèm UTF-8 BOM!", "success");
+  };
+
+  const handleExportJson = () => {
+    if (items.length === 0) return;
+    soundSynth.playSfx("pop");
+    downloaderService.exportCatalog(items, "json");
+    addToast("Đã xuất danh mục video sang tệp .JSON!", "success");
+  };
+
+  // Smart selection helpers
+  const handleSelectOnlyCompleted = () => {
+    soundSynth.playSfx("pop");
+    const completedIds = items.filter((i) => i.status === "completed").map((i) => i.id);
+    onSelectSpecificIds?.(completedIds);
+    addToast(`Đã chọn ${completedIds.length} video đã hoàn tất`, "info");
+  };
+
+  const handleSelectOnlyFailed = () => {
+    soundSynth.playSfx("pop");
+    const failedIds = items.filter((i) => i.status === "failed" || i.status === "error").map((i) => i.id);
+    onSelectSpecificIds?.(failedIds);
+    addToast(`Đã chọn ${failedIds.length} video lỗi để xử lý`, "info");
+  };
+
+  const handleSelectTopViral = () => {
+    soundSynth.playSfx("pop");
+    const sorted = [...items].sort((a, b) => (b.views || 0) - (a.views || 0));
+    const topIds = sorted.slice(0, 10).map((i) => i.id);
+    onSelectSpecificIds?.(topIds);
+    addToast(`Đã chọn Top 10 video có lượt xem cao nhất`, "success");
+  };
+
   const selectedItemsList = items.filter((i) => selectedIds.has(i.id));
 
   return (
     <div className="obsidian-card rounded-2xl border border-white/[0.08] overflow-hidden shadow-2xl space-y-0">
       {/* Table Filter & Search Top Bar */}
       <div className="p-3.5 sm:p-4 bg-white/[0.02] border-b border-white/[0.06] flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 flex-wrap">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-white tracking-wide">
               Hàng đợi video
@@ -98,17 +142,23 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
             </span>
           </div>
 
-          {/* Quick Platform Filter */}
+          {/* Quick Platform Filter - Expanded to 10 platforms */}
           <select
             value={platformFilter}
             onChange={(e) => setPlatformFilter(e.target.value)}
             className="bg-[#07090f] border border-white/10 rounded-lg px-2.5 py-1 text-xs text-slate-300 outline-none focus:border-cyan-500/40 cursor-pointer"
           >
-            <option value="all">Tất cả nền tảng (4)</option>
+            <option value="all">Tất cả nền tảng</option>
             <option value="tiktok">TikTok</option>
-            <option value="douyin">Douyin</option>
-            <option value="facebook">Facebook</option>
+            <option value="douyin">Douyin 抖音</option>
             <option value="youtube">YouTube</option>
+            <option value="facebook">Facebook</option>
+            <option value="instagram">Instagram</option>
+            <option value="xiaohongshu">Xiaohongshu 小红书</option>
+            <option value="kuaishou">Kuaishou 快手</option>
+            <option value="bilibili">Bilibili 哔哩哔哩</option>
+            <option value="twitter">X / Twitter</option>
+            <option value="threads">Threads</option>
           </select>
 
           {/* Quick Status Filter */}
@@ -123,6 +173,57 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
             <option value="downloading">Đang tải</option>
             <option value="failed">Thất bại / Lỗi</option>
           </select>
+
+          {/* Smart Selection Preset Chips */}
+          <div className="hidden lg:flex items-center gap-1 text-[11px]">
+            <button
+              type="button"
+              onClick={handleSelectTopViral}
+              className="px-2 py-0.5 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1 cursor-pointer"
+              title="Chọn Top 10 video nhiều views nhất"
+            >
+              <TrendingUp className="w-3 h-3" />
+              <span>Top Views</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSelectOnlyCompleted}
+              className="px-2 py-0.5 rounded-md bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Đã Xong</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleSelectOnlyFailed}
+              className="px-2 py-0.5 rounded-md bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 flex items-center gap-1 cursor-pointer"
+            >
+              <span>Lỗi</span>
+            </button>
+          </div>
+
+          {/* Export Catalog Actions */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleExportCsv}
+              disabled={items.length === 0}
+              className="px-2.5 py-1 rounded-lg bg-emerald-600/15 hover:bg-emerald-600/25 disabled:opacity-40 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 cursor-pointer shadow-sm"
+              title="Xuất bảng thống kê video ra file Excel (.CSV UTF-8)"
+            >
+              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="hidden sm:inline">Xuất Excel CSV</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleExportJson}
+              disabled={items.length === 0}
+              className="px-2 py-1 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] disabled:opacity-40 text-slate-300 text-xs font-semibold flex items-center gap-1 cursor-pointer border border-white/10"
+              title="Xuất danh sách JSON"
+            >
+              <FileJson className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">JSON</span>
+            </button>
+          </div>
 
           {/* Retry Failed Tasks Button */}
           {onRetryFailedTasks && items.some((i) => i.status === 'failed' || i.status === 'error') && (
@@ -142,17 +243,18 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
         </div>
 
         {/* Search Box */}
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-56">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Tìm theo tiêu đề, tác giả..."
+            placeholder="Tìm theo tiêu đề, kênh..."
             className="w-full bg-[#07090f] border border-white/10 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:border-cyan-500/40 outline-none transition-all"
           />
         </div>
       </div>
+
 
       {/* Floating Sticky Batch Actions Toolbar when items are selected */}
       {selectedIds.size > 0 && (
@@ -377,7 +479,16 @@ export const DownloaderQueueTable: React.FC<DownloaderQueueTableProps> = ({
 
                     {/* Actions */}
                     <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1">
+                        {onBatchTransferToDubbing && item.status === "completed" && (
+                          <button
+                            onClick={() => onBatchTransferToDubbing(item)}
+                            className="p-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 transition-colors cursor-pointer"
+                            title="Nạp video này vào Studio Lồng Tiếng AI"
+                          >
+                            <Sparkles className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => handleCopyLink(item.url)}
                           className="p-1.5 rounded-lg hover:bg-white/10 text-slate-400 hover:text-white transition-colors cursor-pointer"

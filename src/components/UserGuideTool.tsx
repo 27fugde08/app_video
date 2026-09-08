@@ -258,13 +258,13 @@ export const UserGuideTool: React.FC<UserGuideToolProps> = ({ onNavigateToTab })
     },
     {
       id: "features-editing",
-      title: "6. Bộ Công Cụ Video Viral & Khử Bản Quyền",
+      title: "6. Bộ Công Cụ Video Viral & Content ID Shield",
       category: "features",
       categoryLabel: "Video & Editing",
       icon: Film,
-      relatedTab: "semi-edit",
-      summary: "Highlight, Recap phim, Dịch thuật Whisper 1-click và Semi-Edit No-Strike Content ID.",
-      keywords: ["highlight", "recap", "dịch video", "semi edit", "no strike", "bản quyền", "reels"],
+      relatedTab: "highlight",
+      summary: "Highlight, Recap phim, Dịch thuật Whisper 1-click và Content ID Shield bảo vệ bản quyền.",
+      keywords: ["highlight", "recap", "dịch video", "shield", "content id", "bản quyền", "reels"],
       content: (
         <div className="space-y-4 text-xs text-slate-300">
           <p className="text-sm">
@@ -279,7 +279,7 @@ export const UserGuideTool: React.FC<UserGuideToolProps> = ({ onNavigateToTab })
               <strong className="text-cyan-300">Dịch Thuật Video 1-Click:</strong> Bóc tách dải giọng nói nhân vật bằng <em>Demucs</em>, dịch ngữ cảnh và lồng tiếng lại giữ nguyên nhạc nền gốc.
             </li>
             <li className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl">
-              <strong className="text-amber-300">Semi-Edit No-Strike:</strong> Tự động lật khung hình (Micro-Flip), thay đổi quang phổ màu 3% và điều chỉnh tốc độ 1.02x để vượt qua kiểm duyệt bản quyền tự động.
+              <strong className="text-emerald-300">Content ID Shield:</strong> Can thiệp quang phổ vi mô (Micro-noise, dither grain, stereo phase shifting) chuyên nghiệp, an toàn và chống vi phạm bản quyền nâng cao.
             </li>
           </ul>
         </div>

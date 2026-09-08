@@ -3,9 +3,16 @@ export type SupportedPlatformId =
   | "douyin"
   | "facebook"
   | "youtube"
+  | "instagram"
+  | "kuaishou"
+  | "xiaohongshu"
+  | "threads"
+  | "twitter"
+  | "bilibili"
+  | "all"
   | "unknown";
 
-export type DownloadStatus = "queued" | "fetching" | "downloading" | "extracting_audio" | "completed" | "error" | "cancelled";
+export type DownloadStatus = "queued" | "fetching" | "downloading" | "extracting_audio" | "completed" | "error" | "cancelled" | "paused";
 
 export interface VideoDownloadItem {
   id: string;
@@ -31,6 +38,7 @@ export interface VideoDownloadItem {
   error?: string;
   views?: number;
   likes?: number;
+  activeChunks?: number;
   createdAt: string;
 }
 
@@ -39,6 +47,11 @@ export interface DownloaderConfig {
   cookieHeader: string;
   proxyServer: string;
   concurrency: number;
+  chunksPerFile?: number;
+  speedLimitMbps?: number; // 0 = Unlimited
+  namingPattern?: string; // e.g. "{index}_{title}_{platform}"
+  skipExisting?: boolean;
+  downloadThumbnail?: boolean;
   removeWatermark: boolean;
   extractMp3: boolean;
   extractSubtitles: boolean;
@@ -46,6 +59,7 @@ export interface DownloaderConfig {
   preferredQuality: "4k" | "1080p" | "720p" | "original";
   autoOrganizeByAuthor: boolean;
   format: "mp4" | "mp3" | "both";
+  antiBanJitter?: boolean;
 }
 
 export interface DownloaderLogEntry {
@@ -62,4 +76,5 @@ export interface BatchStats {
   queued: number;
   failed: number;
   totalDownloadedMb: number;
+  aggregateSpeedMb?: number;
 }

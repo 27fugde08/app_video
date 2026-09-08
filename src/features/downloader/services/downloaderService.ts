@@ -15,8 +15,42 @@ export function detectPlatform(url: string): SupportedPlatformId {
   if (clean.includes("douyin.com") || clean.includes("iesdouyin.com") || clean.includes("v.douyin") || clean.includes("douyin")) return "douyin";
   if (clean.includes("facebook.com") || clean.includes("fb.watch") || clean.includes("fb.com") || clean.includes("facebook")) return "facebook";
   if (clean.includes("youtube.com") || clean.includes("youtu.be") || clean.includes("youtube")) return "youtube";
+  if (clean.includes("instagram.com") || clean.includes("instagr.am")) return "instagram";
+  if (clean.includes("xiaohongshu.com") || clean.includes("xhslink.com") || clean.includes("redbook")) return "xiaohongshu";
+  if (clean.includes("kuaishou.com") || clean.includes("gifshow.com")) return "kuaishou";
+  if (clean.includes("bilibili.com") || clean.includes("b23.tv")) return "bilibili";
+  if (clean.includes("twitter.com") || clean.includes("x.com") || clean.includes("t.co")) return "twitter";
+  if (clean.includes("threads.net")) return "threads";
   if (clean.startsWith("@")) return "tiktok";
   return "unknown";
+}
+
+/**
+ * Clean & strip tracking parameters from URLs to prevent duplicate downloads and maximize CDN hit rates
+ * (e.g., removes ?utm_source=..., &fbclid=..., &igsh=..., &si=...)
+ */
+export function sanitizeAndCleanUrls(rawText: string): string[] {
+  const extracted = extractUrls(rawText);
+  const trackingParams = [
+    "utm_source", "utm_medium", "utm_campaign", "utm_term", "utm_content",
+    "fbclid", "igsh", "si", "is_from_webapp", "sender_device",
+    "share_app_id", "source", "ref", "feature", "app"
+  ];
+
+  return extracted.map((urlStr) => {
+    try {
+      if (!urlStr.startsWith("http://") && !urlStr.startsWith("https://")) {
+        return urlStr;
+      }
+      const parsed = new URL(urlStr);
+      trackingParams.forEach((param) => parsed.searchParams.delete(param));
+      // Remove trailing ? if search is empty
+      const cleanUrl = parsed.toString().replace(/\?$/, "");
+      return cleanUrl;
+    } catch {
+      return urlStr;
+    }
+  });
 }
 
 /**
@@ -649,9 +683,9 @@ export function extractUrls(rawText: string): string[] {
 }
 
 /**
- * 7. Helper: Export metadata catalog to JSON or TXT file
+ * 7. Helper: Export metadata catalog to JSON, TXT, or Excel-ready CSV
  */
-export function exportCatalog(items: VideoDownloadItem[], format: "json" | "txt" = "json"): void {
+export function exportCatalog(items: VideoDownloadItem[], format: "json" | "txt" | "csv" = "json"): void {
   let blob: Blob;
   let fileName: string;
 
@@ -659,6 +693,26 @@ export function exportCatalog(items: VideoDownloadItem[], format: "json" | "txt"
     const dataStr = JSON.stringify(items, null, 2);
     blob = new Blob([dataStr], { type: "application/json" });
     fileName = `CreatorOS_BatchDownloads_${Date.now()}.json`;
+  } else if (format === "csv") {
+    // CSV with UTF-8 BOM for Microsoft Excel compatibility
+    const headers = ["ID", "Platform", "Title", "Author", "Duration", "Views", "Likes", "Size", "Resolution", "Status", "Original URL", "File Path"];
+    const rows = items.map((item) => [
+      item.id,
+      item.platform.toUpperCase(),
+      `"${(item.title || "").replace(/"/g, '""')}"`,
+      `"${(item.author || "").replace(/"/g, '""')}"`,
+      item.duration,
+      item.views || 0,
+      item.likes || 0,
+      item.fileSize,
+      item.resolution,
+      item.status,
+      `"${item.url}"`,
+      `"${item.filePath || ""}"`
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\r\n");
+    blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    fileName = `CreatorOS_Catalog_${Date.now()}.csv`;
   } else {
     const urls = items.map((i) => `${i.url} | ${i.title} (${i.platform})`).join("\n");
     blob = new Blob([urls], { type: "text/plain" });
@@ -672,6 +726,7 @@ export function exportCatalog(items: VideoDownloadItem[], format: "json" | "txt"
   a.click();
   URL.revokeObjectURL(url);
 }
+
 
 /**
  * 8. Open file or folder directly on the user's host machine
@@ -737,6 +792,7 @@ export const downloaderService = {
   generateSingleVideoItem,
   updateConcurrency,
   extractUrls,
+  sanitizeAndCleanUrls,
   detectPlatform,
   exportCatalog,
   openFileOrFolder

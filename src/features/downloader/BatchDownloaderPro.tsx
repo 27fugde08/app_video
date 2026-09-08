@@ -11,9 +11,13 @@ import { downloaderService } from "./services/downloaderService";
 import { soundSynth } from "../../utils/audioUtils";
 import { useToast } from "../../context/ToastContext";
 import { VideoDownloadItem, SupportedPlatformId } from "./types";
-import { Download, FileJson, FileText, Sparkles, HardDrive, FolderSearch, Zap, Link, UserCheck, ShieldCheck, Search, Globe, Key, RefreshCw, Layers, CheckCircle, ExternalLink, ArrowRight, Eye, ThumbsUp, Clock } from "lucide-react";
+import { Download, FileJson, FileSpreadsheet, FileText, Sparkles, HardDrive, FolderSearch, Zap, Link, UserCheck, ShieldCheck, Search, Globe, Key, RefreshCw, Layers, CheckCircle, ExternalLink, ArrowRight, Eye, ThumbsUp, Clock } from "lucide-react";
 
-export const BatchDownloaderPro: React.FC = () => {
+interface BatchDownloaderProProps {
+  onNavigateToTab?: (tab: string) => void;
+}
+
+export const BatchDownloaderPro: React.FC<BatchDownloaderProProps> = ({ onNavigateToTab }) => {
   const { addToast } = useToast();
   const [activeSubTab, setActiveSubTab] = useState<"urls" | "creator" | "network">("urls");
   const [channelInput, setChannelInput] = useState<string>("@mrbeast");
@@ -50,12 +54,19 @@ export const BatchDownloaderPro: React.FC = () => {
     handleToggleSelect,
     handleRemoveItem,
     handleClearSelection,
+    handleSelectSpecificIds,
     handleDeleteSelected,
     handleRetryFailedTasks,
     handleBatchRename,
     handleBatchTransferToDubbing,
     handleLoadMockTestData
   } = useBatchDownloader();
+
+  const handleExportCsv = () => {
+    soundSynth.playSfx("pop");
+    downloaderService.exportCatalog(items, "csv");
+    addToast("Đã xuất danh mục video sang tệp Excel (.CSV UTF-8)!", "success");
+  };
 
   const handleExportJson = () => {
     soundSynth.playSfx("pop");
@@ -74,8 +85,12 @@ export const BatchDownloaderPro: React.FC = () => {
     handleDownloadSelected();
     addToast("⚡ 1-Click Pipeline: Đã kích hoạt tải video & tự động nạp sang Studio Dịch Lồng Tiếng AI!", "success");
     setTimeout(() => {
-      window.dispatchEvent(new CustomEvent("creatoros:navigate", { detail: "translate" }));
-    }, 1200);
+      if (onNavigateToTab) {
+        onNavigateToTab("translate");
+      } else {
+        window.dispatchEvent(new CustomEvent("creatoros:navigate", { detail: "translate" }));
+      }
+    }, 1000);
   };
 
   const handleExecuteCreatorScan = async () => {
@@ -168,6 +183,20 @@ export const BatchDownloaderPro: React.FC = () => {
           </button>
 
           <button
+            onClick={handleExportCsv}
+            disabled={items.length === 0}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
+              items.length === 0
+                ? "bg-transparent text-slate-600 border-transparent cursor-not-allowed"
+                : "bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 hover:text-white border-emerald-500/30"
+            }`}
+            title="Xuất bảng thống kê video ra file Excel (.CSV UTF-8)"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Xuất Excel CSV</span>
+          </button>
+
+          <button
             onClick={handleExportJson}
             disabled={items.length === 0}
             className={`px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer border ${
@@ -222,6 +251,7 @@ export const BatchDownloaderPro: React.FC = () => {
             selectedIds={selectedIds}
             onToggleSelectAll={handleToggleSelectAll}
             onToggleSelect={handleToggleSelect}
+            onSelectSpecificIds={handleSelectSpecificIds}
             onRemoveItem={handleRemoveItem}
             onRetryFailedTasks={handleRetryFailedTasks}
             onDeleteSelected={handleDeleteSelected}

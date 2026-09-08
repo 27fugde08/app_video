@@ -80,16 +80,16 @@ const API_ENDPOINTS: EndpointDef[] = [
     }
   },
   {
-    id: "ai_semi_content",
-    name: "AI Edit Bán Content YTB",
+    id: "ai_content_shield",
+    name: "AI Content ID Shield Matrix",
     category: "AI Generation",
     method: "POST",
-    path: "/api/ai/semi-content",
-    summary: "Lập cấu hình render split-screen, pitch shift âm thanh +3%, và visual filters bypass bản quyền.",
+    path: "/api/ai/content-shield",
+    summary: "Lập cấu hình can thiệp vi mô (micro-noise, dither grain, stereo phase shifting) chống vi phạm bản quyền.",
     defaultBody: {
       topic: "10 Sự Thật Rùng Rợn Dưới Đáy Đại Dương",
-      overlayType: "GTA5 / Subway Surfers Gameplay",
-      narrationTone: "Kể chuyện ly kỳ",
+      shieldMode: "Spectral Distortion + Micro Grain",
+      audioInterference: "Stereo Phase 3deg",
       splitRatio: "50/50"
     }
   },

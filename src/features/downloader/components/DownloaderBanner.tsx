@@ -1,6 +1,5 @@
 import React from "react";
-import { Download, Sparkles, Zap, Globe2, ShieldCheck, Flame } from "lucide-react";
-import { SUPPORTED_PLATFORMS } from "../../../constants/platforms";
+import { Download, Sparkles, Zap, ShieldCheck } from "lucide-react";
 import { soundSynth } from "../../../utils/audioUtils";
 
 interface DownloaderBannerProps {
@@ -8,12 +7,21 @@ interface DownloaderBannerProps {
   onSelectPlatform: (platformId: string) => void;
 }
 
+const PLATFORM_PILLS = [
+  { id: "all", name: "Tất Cả" },
+  { id: "tiktok", name: "TikTok" },
+  { id: "douyin", name: "Douyin" },
+  { id: "youtube", name: "YouTube" },
+  { id: "facebook", name: "Facebook" },
+  { id: "instagram", name: "Instagram" }
+];
+
 export const DownloaderBanner: React.FC<DownloaderBannerProps> = ({
   selectedPlatform,
   onSelectPlatform
 }) => {
   return (
-    <div className="obsidian-card rounded-2xl p-4 sm:p-5 relative overflow-hidden border border-white/[0.08] shadow-2xl">
+    <div className="obsidian-card rounded-2xl p-4 sm:p-5 relative overflow-hidden border border-white/[0.08] shadow-2xl space-y-3.5">
       {/* Subtle background ambient glow */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-cyan-500/10 via-violet-600/10 to-transparent blur-3xl pointer-events-none"></div>
 
@@ -27,7 +35,7 @@ export const DownloaderBanner: React.FC<DownloaderBannerProps> = ({
             <div>
               <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white flex items-center gap-2">
                 Batch Downloader Pro
-                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 glow-cyan">
+                <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
                   TURBO V5.0
                 </span>
               </h1>
@@ -55,23 +63,9 @@ export const DownloaderBanner: React.FC<DownloaderBannerProps> = ({
         </div>
       </div>
 
-      {/* Platform Pill Bar */}
-      <div className="mt-3.5 pt-3.5 border-t border-white/[0.06] flex items-center gap-2 overflow-x-auto custom-scrollbar pb-1">
-        <button
-          onClick={() => {
-            soundSynth.playSfx("pop");
-            onSelectPlatform("all");
-          }}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold shrink-0 transition-all cursor-pointer border ${
-            selectedPlatform === "all"
-              ? "bg-gradient-to-r from-cyan-500 to-violet-600 text-white border-cyan-400/40 shadow-md glow-cyan"
-              : "bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border-white/10"
-          }`}
-        >
-          Tất cả nền tảng ({SUPPORTED_PLATFORMS.length})
-        </button>
-
-        {SUPPORTED_PLATFORMS.map((plat) => {
+      {/* Platform Pill Wrap Panel (No horizontal scrollbar) */}
+      <div className="pt-2 border-t border-white/[0.06] flex flex-wrap items-center gap-2">
+        {PLATFORM_PILLS.map((plat) => {
           const isSelected = selectedPlatform === plat.id;
           return (
             <button
@@ -80,16 +74,13 @@ export const DownloaderBanner: React.FC<DownloaderBannerProps> = ({
                 soundSynth.playSfx("pop");
                 onSelectPlatform(plat.id);
               }}
-              className={`px-3 py-1.5 rounded-xl text-xs font-medium shrink-0 transition-all flex items-center gap-1.5 cursor-pointer border ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer border ${
                 isSelected
-                  ? "bg-violet-500/25 text-cyan-300 border-cyan-500/50 shadow-sm glow-purple"
-                  : "bg-white/[0.03] hover:bg-white/[0.07] text-slate-400 hover:text-slate-200 border-white/[0.06]"
+                  ? "bg-gradient-to-r from-cyan-500 to-violet-600 text-white border-cyan-400/40 shadow-md shadow-cyan-500/20"
+                  : "bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 border-white/10"
               }`}
             >
-              <span className="font-semibold">{plat.name}</span>
-              <span className="text-[10px] opacity-75 font-mono text-cyan-400/90 hidden sm:inline">
-                ({plat.badge})
-              </span>
+              {plat.name}
             </button>
           );
         })}

@@ -39,7 +39,9 @@ import {
   FolderSearch,
   VolumeX,
   Maximize2,
-  FileText
+  FileText,
+  Plus,
+  Upload
 } from "lucide-react";
 import { soundSynth } from "../utils/audioUtils";
 import { useToast } from "../context/ToastContext";
@@ -250,10 +252,71 @@ export const TranslateVideoTool: React.FC = () => {
   const [subtitleCues, setSubtitleCues] = useState<Array<{ id: number; time: string; orig: string; trans: string }>>([
     { id: 1, time: "00:00 - 00:04", orig: "探索未知星系，感受宇宙浩瀚...", trans: "Khám phá các thiên hà chưa biết, cảm nhận sự bao la..." },
     { id: 2, time: "00:05 - 00:09", orig: "每一次突破, 都是人类智慧的飞跃。", trans: "Mỗi một bước đột phá đều là sự vọt tiến của trí tuệ loài người." },
-    { id: 3, time: "00:10 - 00:15", orig: "欢迎来到 AI Creator OS 时代！", trans: "Chào mừng bạn đến với kỷ nguyên AI Creator OS!" }
+    { id: 3, time: "00:10 - 00:15", orig: "欢迎来到 AI Creator OS 时代！", trans: "Chào mừng bạn đến với kỷ nguyên AI Creator OS!" },
+    { id: 4, time: "00:16 - 00:28", orig: "母舰核心能量反应堆突然发生异常聚变反应！", trans: "Lò phản ứng năng lượng lõi của tàu mẹ đột ngột phát nổ nhiệt hạch dữ dội!" },
+    { id: 5, time: "00:29 - 00:42", orig: "全体船员请立即撤离，进入紧急逃生舱！", trans: "Toàn bộ phi hành đoàn hãy sơ tán ngay lập tức vào khoang thoát hiểm khẩn cấp!" },
+    { id: 6, time: "00:43 - 00:58", orig: "我们必须在十秒内启动跃迁引擎突破重力井！", trans: "Chúng ta phải kích hoạt động cơ bước nhảy lượng tử trong mười giây để thoát khỏi hố trọng lực!" }
   ]);
 
+  // Viral Shorts 60s & Hook 3s Quick Extraction State
+  const [isExtractingShorts, setIsExtractingShorts] = useState<boolean>(false);
+  const [viralShortsResult, setViralShortsResult] = useState<{
+    hookTitle: string;
+    inTime: string;
+    outTime: string;
+    duration: string;
+    highlightSummary: string;
+  } | null>(null);
+
+  const handleExtractViralShorts = () => {
+    if (isExtractingShorts) return;
+    setIsExtractingShorts(true);
+    soundSynth.playSfx("pop");
+    addToast("⚡ [AI Viral Hook] Đang phân tích kịch bản Whisper và tìm đoạn cao trào < 60s...", "info");
+
+    setTimeout(() => {
+      setIsExtractingShorts(false);
+      soundSynth.playSfx("success");
+      const result = {
+        hookTitle: "⚡ BÍ MẬT KHỦNG KHIẾP: Lò phản ứng năng lượng lõi tàu mẹ phát nổ!",
+        inTime: "00:00:16",
+        outTime: "00:00:58",
+        duration: "42s",
+        highlightSummary: "Phân đoạn kịch tính nhất chứa cảnh báo động đỏ, lời thoại khẩn cấp của thuyền trưởng và lệnh kích hoạt động cơ bước nhảy."
+      };
+      setViralShortsResult(result);
+
+      // Thêm 1 tác vụ render clip dọc 9:16 vào hàng đợi NVENC
+      addTask({
+        title: `[Shorts 9:16 Viral Hook] ${activeDualVideo?.title || "深空拾光_CaoTrào_Viral.mp4"}`,
+        type: "nvenc-export",
+        status: "processing",
+        progress: 15,
+        priority: "high",
+        details: `Trích xuất 42s (${result.inTime} -> ${result.outTime}) • Render 1080x1920 (9:16) Hardware NVENC`
+      });
+
+      addToast(`⚡ Đã trích xuất Shorts 60s (${result.duration})! Đã thêm tác vụ Render 9:16 vào hàng đợi NVENC.`, "success");
+    }, 1200);
+  };
+
   // Auto-Sync Downloaded Folders from Downloader Pro
+  const [isWav2LipEnabled, setIsWav2LipEnabled] = useState<boolean>(true);
+  const [isVoiceCloneModalOpen, setIsVoiceCloneModalOpen] = useState<boolean>(false);
+  const [clonedVoiceName, setClonedVoiceName] = useState<string>("Giọng Clone Pro #1 (10s Audio)");
+  const [isCloning, setIsCloning] = useState<boolean>(false);
+  const [seoMetadata, setSeoMetadata] = useState<{
+    title: string;
+    tags: string[];
+    description: string;
+    thumbnailPrompt: string;
+  }>({
+    title: "【Review Phim】Khám Phá Bí Mật Tàu Không Gian & Hố Trọng Lực 2026",
+    tags: ["#reviewphim", "#shorts", "#creatoros", "#scifi", "#dubbing"],
+    description: "Video được lồng tiếng AI cao cấp kèm đồng bộ khẩu hình Wav2Lip và tối ưu SEO tự động.",
+    thumbnailPrompt: "Cinematic 8k shot of a spaceship engine core explosion, dramatic lighting, 4:3 photorealistic"
+  });
+
   const syncDownloadedFolders = React.useCallback(() => {
     try {
       const savedRaw = localStorage.getItem("creatoros_downloaded_folders");
@@ -696,27 +759,59 @@ export const TranslateVideoTool: React.FC = () => {
 
       {activeSubTab === "subtitles" && (
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/30 text-rose-400 flex items-center justify-center">
                 <FileText className="w-5 h-5" />
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white">Subtitle Studio & AI Script Re-writer</h3>
-                <p className="text-xs text-slate-400">Chỉnh sửa trực tiếp từng mốc thời gian Timeline & lời dịch trước khi Render ghép vào video</p>
+                <p className="text-xs text-slate-400">Kế thừa trực tiếp Whisper transcript ngầm • Tự động tìm đoạn cao trào &lt; 60s + Hook 3s</p>
               </div>
             </div>
-            <button
-              onClick={() => {
-                soundSynth.playSfx("success");
-                addToast("Đã xuất tệp phụ đè tiếng Việt (Vi.srt) thành công!", "success");
-              }}
-              className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md cursor-pointer"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Xuất Tệp SRT</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleExtractViralShorts}
+                disabled={isExtractingShorts}
+                className="px-4 py-2 bg-gradient-to-r from-pink-600 via-rose-600 to-amber-600 hover:from-pink-500 hover:to-amber-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-pink-600/30 cursor-pointer transition-all disabled:opacity-50"
+              >
+                <Sparkles className={`w-4 h-4 text-yellow-300 ${isExtractingShorts ? "animate-spin" : ""}`} />
+                <span>{isExtractingShorts ? "Đang Phân Tích Cao Trào..." : "⚡ Trích Xuất Bản Shorts 60s (Viral Hook)"}</span>
+              </button>
+              <button
+                onClick={() => {
+                  soundSynth.playSfx("success");
+                  addToast("Đã xuất tệp phụ đề tiếng Việt (Vi.srt) thành công!", "success");
+                }}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold flex items-center gap-1.5 border border-slate-700 shadow-md cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>Xuất Tệp SRT</span>
+              </button>
+            </div>
           </div>
+
+          {/* Viral Shorts Result Banner */}
+          {viralShortsResult && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-pink-950/60 via-purple-950/40 to-slate-900 border border-pink-500/40 space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30 text-[10px] font-bold uppercase font-mono">
+                    Viral Hook 3s
+                  </span>
+                  <span className="text-xs font-extrabold text-white">{viralShortsResult.hookTitle}</span>
+                </div>
+                <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono">
+                  ⏱️ {viralShortsResult.inTime} ➔ {viralShortsResult.outTime} ({viralShortsResult.duration})
+                </span>
+              </div>
+              <p className="text-xs text-slate-300">{viralShortsResult.highlightSummary}</p>
+              <div className="flex items-center gap-2 text-[11px] text-pink-400 font-mono">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Đã đánh dấu In/Out trên timeline và tự động đẩy 1 tác vụ Render 9:16 vào hàng đợi NVENC.</span>
+              </div>
+            </div>
+          )}
 
           {/* Subtitle Editor Table */}
           <div className="border border-slate-800 rounded-xl overflow-hidden bg-slate-950">
@@ -1351,7 +1446,24 @@ export const TranslateVideoTool: React.FC = () => {
                   </div>
                 )}
 
-                {/* Voice Search & Gender Filter */}
+                {/* Voice Search & Gender Filter & Clone Button */}
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-slate-300 flex items-center gap-1.5">
+                    <Mic className="w-3.5 h-3.5 text-blue-400" />
+                    Thư Viện Giọng Đọc AI
+                  </span>
+                  <button
+                    onClick={() => {
+                      soundSynth.playSfx("pop");
+                      setIsVoiceCloneModalOpen(true);
+                    }}
+                    className="px-2.5 py-1 bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span>+ Clone Giọng (10s)</span>
+                  </button>
+                </div>
+
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <input
@@ -1481,6 +1593,33 @@ export const TranslateVideoTool: React.FC = () => {
                   <p className="text-[10px] text-slate-500 leading-tight">
                     Nếu nhạc nền quá to át tiếng, hãy kéo tăng Âm lượng giọng đọc! (Khuyến nghị: 100% - 200%)
                   </p>
+
+                  {/* Wav2Lip Toggle Switch */}
+                  <div className="mt-3 pt-3 border-t border-slate-800 flex items-center justify-between bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-3 h-3 rounded-full ${isWav2LipEnabled ? "bg-emerald-400 animate-pulse" : "bg-slate-600"}`} />
+                      <div>
+                        <div className="text-xs font-bold text-white">Khớp Khẩu Hình Môi (Wav2Lip AI)</div>
+                        <div className="text-[10px] text-slate-400">Tự động đồng bộ lip-sync bằng RTX NVENC</div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        soundSynth.playSfx("pop");
+                        setIsWav2LipEnabled(!isWav2LipEnabled);
+                        addToast(isWav2LipEnabled ? "Đã tắt Lip-Sync Wav2Lip." : "Đã bật Lip-Sync Wav2Lip AI (Yêu cầu RTX GPU).", "info");
+                      }}
+                      className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                        isWav2LipEnabled ? "bg-emerald-600" : "bg-slate-800"
+                      }`}
+                    >
+                      <div
+                        className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                          isWav2LipEnabled ? "translate-x-5" : "translate-x-0"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
             )}
@@ -1756,6 +1895,76 @@ export const TranslateVideoTool: React.FC = () => {
         isOpen={isGpuModalOpen}
         onClose={() => setIsGpuModalOpen(false)}
       />
+
+      {/* Voice Clone Modal (10s audio upload / sample) */}
+      {isVoiceCloneModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 w-full max-w-md rounded-2xl p-6 space-y-4 shadow-2xl animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-white">
+                <Mic className="w-5 h-5 text-blue-400" />
+                <h3 className="text-base font-bold">Clone Giọng Đọc AI (10s Audio)</h3>
+              </div>
+              <button
+                onClick={() => setIsVoiceCloneModalOpen(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-300">
+              Tải lên tệp âm thanh mẫu (WAV/MP3, tối thiểu 10 giây) hoặc ghi âm trực tiếp để hệ thống F5-TTS / Kokoro trích xuất đặc trưng giọng nói.
+            </p>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[11px] font-bold text-slate-400 block mb-1">Tên Giọng Clone</label>
+                <input
+                  type="text"
+                  value={clonedVoiceName}
+                  onChange={(e) => setClonedVoiceName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-blue-500 font-mono"
+                />
+              </div>
+
+              <div className="border-2 border-dashed border-slate-700 rounded-xl p-6 text-center space-y-2 bg-slate-950/50 hover:border-blue-500/50 transition-colors cursor-pointer">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mx-auto">
+                  <Upload className="w-5 h-5" />
+                </div>
+                <div className="text-xs font-bold text-white">Kéo thả tệp âm thanh mẫu vào đây</div>
+                <div className="text-[10px] text-slate-400">Hỗ trợ .WAV, .MP3, .FLAC (Tối đa 50MB)</div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                onClick={() => setIsVoiceCloneModalOpen(false)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold"
+              >
+                Hủy
+              </button>
+              <button
+                onClick={() => {
+                  setIsCloning(true);
+                  soundSynth.playSfx("pop");
+                  setTimeout(() => {
+                    setIsCloning(false);
+                    setIsVoiceCloneModalOpen(false);
+                    soundSynth.playSfx("success");
+                    addToast(`✨ Đã clone thành công giọng "${clonedVoiceName}"! Đã thêm vào thư viện giọng đọc.`, "success");
+                  }, 1500);
+                }}
+                disabled={isCloning}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg shadow-blue-600/30 disabled:opacity-50"
+              >
+                {isCloning ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5 text-yellow-300" />}
+                <span>{isCloning ? "Đang Trích Xuất Embedding..." : "Bắt Đầu Clone Giọng"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

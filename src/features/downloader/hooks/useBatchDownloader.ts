@@ -31,7 +31,13 @@ const DEFAULT_CONFIG: DownloaderConfig = {
   gpuAcceleration: true,
   preferredQuality: "original",
   autoOrganizeByAuthor: true,
-  format: "both"
+  format: "both",
+  chunksPerFile: 8,
+  speedLimitMbps: 0,
+  namingPattern: "{index}_{title}_{platform}",
+  skipExisting: true,
+  downloadThumbnail: true,
+  antiBanJitter: true
 };
 
 const INITIAL_QUEUE_ITEMS: VideoDownloadItem[] = [];
@@ -421,6 +427,11 @@ export function useBatchDownloader() {
     setSelectedIds(new Set());
   }, []);
 
+  // Action: Select specific set of IDs
+  const handleSelectSpecificIds = useCallback((ids: string[]) => {
+    setSelectedIds(new Set(ids));
+  }, []);
+
   // Action: Delete Selected Items
   const handleDeleteSelected = useCallback(() => {
     if (selectedIds.size === 0) return;
@@ -630,6 +641,7 @@ export function useBatchDownloader() {
     handleToggleSelect,
     handleRemoveItem,
     handleClearSelection,
+    handleSelectSpecificIds,
     handleDeleteSelected,
     handleRetryFailedTasks,
     handleBatchRename,

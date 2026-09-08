@@ -14,12 +14,23 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using CreatorOS.Core.Contracts;
 
 namespace CreatorOS.Core.Services;
+
+/// <summary>
+/// AOT JSON Source Generator Context cho ScannedVideoItem và metadata response
+/// </summary>
+[JsonSourceGenerationOptions(WriteIndented = false, PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(ScannedVideoItem))]
+[JsonSerializable(typeof(List<ScannedVideoItem>))]
+public partial class ScannerJsonContext : JsonSerializerContext
+{
+}
 
 /// <summary>
 /// ChannelBatchScanner: Bộ thu thập và bóc tách trực tiếp link video No-Watermark từ Channel/Playlist.
@@ -36,14 +47,24 @@ namespace CreatorOS.Core.Services;
 ///    - Tự động nhận diện nền tảng (TikTok, Douyin, YouTube Playlist) từ URL đầu vào, chuẩn hóa về `ScannedVideoItem`.
 /// 4. Goal-Driven Execution:
 ///    - Quét 50 video trong thời gian < 12 giây.
-///    - Lách Rate-Limit nhờ Dynamic Jitter (800ms - 2500ms) kết hợp Exponential Backoff 10s khi gặp 429/403.
+///    - Lách Rate-Limit nhờ Dynamic Jitter (500ms - 1800ms) kết hợp Exponential Backoff 10s khi gặp 429/403.
 /// </summary>
-public sealed class ChannelBatchScanner : IDisposable
+public sealed partial class ChannelBatchScanner : IDisposable
 {
     private readonly SocketsHttpHandler _socketsHandler;
     private readonly HttpClient _httpClient;
     private readonly ChannelScannerOptions _options;
     private bool _disposed;
+
+    // GeneratedRegex C# Source Generators cho việc bóc tách URL không reflection
+    [GeneratedRegex(@"/@?([a-zA-Z0-9_\.]+)", RegexOptions.Compiled)]
+    private static partial Regex TikTokUsernameRegex();
+
+    [GeneratedRegex(@"/user/([a-zA-Z0-9_-]+)", RegexOptions.Compiled)]
+    private static partial Regex DouyinUserRegex();
+
+    [GeneratedRegex(@"[?&]list=([a-zA-Z0-9_-]+)", RegexOptions.Compiled)]
+    private static partial Regex YouTubeListRegex();
 
     // Danh sách User-Agent xoay vòng tránh fingerprinting
     private static readonly string[] UserAgentPool = new[]
@@ -316,18 +337,21 @@ public sealed class ChannelBatchScanner : IDisposable
             if (platform == PlatformType.TikTok)
             {
                 // Format: https://www.tiktok.com/@username
-                var match = Regex.Match(uri.AbsolutePath, @"/@?([a-zA-Z0-9_\.]+)");
+                var match = TikTokUsernameRegex().Match(uri.AbsolutePath);
                 if (match.Success) return match.Groups[1].Value;
             }
             else if (platform == PlatformType.Douyin)
             {
                 // Format: https://www.douyin.com/user/MS4wLjABAAAA...
-                var match = Regex.Match(uri.AbsolutePath, @"/user/([a-zA-Z0-9_-]+)");
+                var match = DouyinUserRegex().Match(uri.AbsolutePath);
                 if (match.Success) return match.Groups[1].Value;
             }
             else if (platform == PlatformType.YouTubePlaylist)
             {
                 // Format: ?list=PLxxxx
+                var match = YouTubeListRegex().Match(uri.Query);
+                if (match.Success) return match.Groups[1].Value;
+
                 var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
                 string? listId = query["list"];
                 if (!string.IsNullOrEmpty(listId)) return listId;

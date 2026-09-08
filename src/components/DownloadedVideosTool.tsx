@@ -530,7 +530,7 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
   const handleSendToEditor = (folderName: string, count: number) => {
     soundSynth.playSfx("success");
     addTask({
-      title: `Chuyển ${count} video [${folderName}] sang Studio Bán Content`,
+      title: `Chuyển ${count} video [${folderName}] sang Timeline Studio D3D11`,
       type: "render",
       status: "running",
       progress: 45
@@ -631,7 +631,7 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
                   </span>
                 </div>
                 <p className="text-xs text-slate-400">
-                  Quản lý các tệp video đã bóc tách bản quyền, sẵn sàng đưa vào Studio Edit Bán Content & AI Highlight
+                  Quản lý các tệp video đã bóc tách bản quyền, sẵn sàng đưa vào Timeline Studio & AI Highlight
                 </p>
               </div>
             </div>
@@ -1129,7 +1129,7 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
                       <button
                         onClick={() => handleSendToEditor(folder.name, folder.videoCount)}
                         className="p-1.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700/60 transition-colors cursor-pointer"
-                        title="Gửi sang Studio Edit Bán Content"
+                        title="Gửi sang Timeline Studio D3D11"
                       >
                         <Film className="w-3.5 h-3.5 text-rose-400" />
                       </button>
@@ -1548,7 +1548,7 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
                   className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Film className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Gửi vào Edit Bán Content</span>
+                  <span>Gửi vào Timeline Studio</span>
                 </button>
 
                 <button
@@ -1719,7 +1719,7 @@ export function DownloadedVideosTool({ onNavigateToTab }: DownloadedVideosToolPr
                   <Info className="w-3.5 h-3.5 text-cyan-400" /> Hệ thống tự động:
                 </p>
                 <p className="text-[11px] leading-relaxed">
-                  Tự động quét bóc tách và tạo chỉ mục metadata cho tất cả các file .MP4 có trong đường dẫn, sẵn sàng cho công cụ render Bán Content.
+                  Tự động quét bóc tách và tạo chỉ mục metadata cho tất cả các file .MP4 có trong đường dẫn, sẵn sàng cho công cụ render Timeline Studio & Content ID Shield.
                 </p>
               </div>
             </div>

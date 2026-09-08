@@ -6,7 +6,18 @@
  */
 
 import { ipcClient } from '../../../core/ipc/ipcClient';
-import { AiKeyItem } from '../../../components/AiManagerTool';
+export interface AiKeyItem {
+  id: string;
+  stt: number;
+  key: string;
+  maskedKey?: string;
+  platform: string;
+  status?: "valid" | "invalid" | "untested" | "rate_limited";
+  callsCount?: number;
+  addedAt?: string;
+  note?: string;
+  latencyMs?: number;
+}
 
 export interface AiKeyPoolOverviewResponse {
   success: boolean;

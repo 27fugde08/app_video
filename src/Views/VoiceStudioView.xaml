@@ -1,0 +1,184 @@
+<UserControl x:Class="CreatorOS.Desktop.Wpf.Views.VoiceStudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:views="clr-namespace:CreatorOS.Desktop.Wpf.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="850" d:DesignWidth="1180"
+             Background="#0F172A">
+
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <!-- Top Controls & Waveform Player Bar -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Content Area: Left Script Editor / Right Voice Library & Cloning -->
+            <RowDefinition Height="*"/>
+            <!-- Bottom Action & Status Bar -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Top Waveform Player Bar -->
+        <Border Grid.Row="0" Background="#1E293B" CornerRadius="8" Padding="14" Margin="0,0,0,12" BorderBrush="#334155" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Play/Pause Button -->
+                <Button Grid.Column="0" Command="{Binding TogglePlaybackCommand}" 
+                        Background="#0284C7" Foreground="#FFFFFF" FontWeight="Bold" FontSize="13"
+                        BorderThickness="0" Padding="16,8" Margin="0,0,14,0" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="▶ Nghe Thử" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Button>
+
+                <!-- Direct2D Waveform Visualizer -->
+                <Border Grid.Column="1" Background="#0F172A" CornerRadius="6" BorderBrush="#334155" BorderThickness="1" Height="50" Padding="4">
+                    <views:AudioWaveformVisualizer PlayheadProgress="{Binding CurrentPlayheadProgress}"/>
+                </Border>
+
+                <!-- A/B Test Switch -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Margin="14,0,0,0">
+                    <Button Content="🔄 A/B Test Giọng Gốc" Background="#334155" Foreground="#F8FAFC" FontSize="11" Padding="10,6" BorderThickness="0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Main Content Area -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- Left: Script Studio Editor -->
+                <ColumnDefinition Width="6*"/>
+                <ColumnDefinition Width="12"/>
+                <!-- Right: Voice Cards & Cloning Tool -->
+                <ColumnDefinition Width="4*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Left: Script Studio -->
+            <Border Grid.Column="0" Background="#1E293B" CornerRadius="8" BorderBrush="#334155" BorderThickness="1" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="110"/>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="📝 Soạn Thảo Văn Bản (Script Studio)" Foreground="#38BDF8" FontWeight="Bold" FontSize="13" Margin="0,0,0,8"/>
+
+                    <TextBox Grid.Row="1" Text="{Binding ScriptFullText, UpdateSourceTrigger=PropertyChanged}" 
+                             Background="#0F172A" Foreground="#F8FAFC" BorderBrush="#475569" BorderThickness="1"
+                             Padding="10" FontSize="12" TextWrapping="Wrap" AcceptsReturn="True" Margin="0,0,0,10"/>
+
+                    <Grid Grid.Row="2" Margin="0,0,0,8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Grid.Column="0" Text="Phân Đoạn Từng Câu (Multi-Speaker Dialogue):" Foreground="#94A3B8" FontSize="11" VerticalAlignment="Center"/>
+                        <Button Grid.Column="1" Content="✂️ Tự Động Tách Câu" Command="{Binding SplitScriptIntoSentencesCommand}"
+                                Background="#334155" Foreground="#38BDF8" FontSize="11" Padding="8,4" BorderThickness="0"/>
+                    </Grid>
+
+                    <DataGrid Grid.Row="3" ItemsSource="{Binding ScriptSentences}"
+                              AutoGenerateColumns="False" 
+                              Background="Transparent" 
+                              RowBackground="#0F172A" 
+                              AlternatingRowBackground="#1E293B"
+                              BorderThickness="0" 
+                              GridLinesVisibility="Horizontal"
+                              HorizontalGridLinesBrush="#334155"
+                              CanUserAddRows="False"
+                              HeadersVisibility="Column">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding Index}" Width="35" IsReadOnly="True" Foreground="#94A3B8"/>
+                            <DataGridTextColumn Header="CÂU THOẠI" Binding="{Binding Text}" Width="*" Foreground="#F8FAFC"/>
+                            <DataGridTextColumn Header="GIỌNG GÁN" Binding="{Binding AssignedVoiceId}" Width="160" Foreground="#34D399"/>
+                            <DataGridTextColumn Header="TỐC ĐỘ" Binding="{Binding Speed, StringFormat='{}{0:F2}x'}" Width="65" Foreground="#FCD34D"/>
+                            <DataGridTextColumn Header="THỜI LƯỢNG" Binding="{Binding EstimatedSeconds, StringFormat='{}{0:F1}s'}" Width="75" Foreground="#94A3B8"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </Border>
+
+            <!-- Right: Voice Library & Cloning -->
+            <Border Grid.Column="2" Background="#1E293B" CornerRadius="8" BorderBrush="#334155" BorderThickness="1" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+
+                    <TextBlock Grid.Row="0" Text="🎙️ Thư Viện Giọng Đọc &amp; Nhân Bản" Foreground="#34D399" FontWeight="Bold" FontSize="13" Margin="0,0,0,10"/>
+
+                    <!-- Voice Cards List -->
+                    <ListBox Grid.Row="1" ItemsSource="{Binding VoiceCards}" SelectedItem="{Binding SelectedVoice}"
+                             Background="Transparent" BorderThickness="0" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border Background="#0F172A" CornerRadius="6" BorderBrush="#334155" BorderThickness="1" Margin="0,0,0,8" Padding="10">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="Auto"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="Auto"/>
+                                        </Grid.ColumnDefinitions>
+
+                                        <TextBlock Grid.Column="0" Text="{Binding Flag}" FontSize="20" VerticalAlignment="Center" Margin="0,0,10,0"/>
+
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Name}" Foreground="#F8FAFC" FontSize="12" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Category}" Foreground="#94A3B8" FontSize="10"/>
+                                        </StackPanel>
+
+                                        <Border Grid.Column="2" Background="#334155" CornerRadius="4" Padding="6,2" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Gender}" Foreground="#38BDF8" FontSize="10" FontWeight="Bold"/>
+                                        </Border>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- 1-Click Voice Cloning Box -->
+                    <Border Grid.Row="2" Background="#0F172A" CornerRadius="6" BorderBrush="#475569" BorderThickness="1" Padding="10" Margin="0,10,0,0">
+                        <StackPanel>
+                            <TextBlock Text="⚡ Nhân Bản Giọng 1-Click (Zero-Shot):" Foreground="#FCD34D" FontWeight="Bold" FontSize="11" Margin="0,0,0,6"/>
+                            <TextBox Text="{Binding NewCloneName, UpdateSourceTrigger=PropertyChanged}" 
+                                     Background="#1E293B" Foreground="#F8FAFC" BorderBrush="#475569" BorderThickness="1"
+                                     Padding="6,4" FontSize="11" Margin="0,0,0,6"/>
+                            <Button Content="🧬 Nạp Mẫu 10s &amp; Clone Ngay" Command="{Binding CloneNewVoiceCommand}"
+                                    Background="#8B5CF6" Foreground="#FFFFFF" FontWeight="SemiBold" FontSize="11"
+                                    BorderThickness="0" Padding="10,6"/>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- Bottom Action & Status Bar -->
+        <Border Grid.Row="2" Background="#1E293B" CornerRadius="8" Padding="12" Margin="0,12,0,0" BorderBrush="#334155" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Grid.Column="0" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding StatusMessage}" Foreground="#F8FAFC" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
+                    <ProgressBar Value="{Binding GenerationProgress}" Maximum="100" Height="6" Width="380" HorizontalAlignment="Left"
+                                 Background="#334155" Foreground="#10B981" BorderThickness="0"
+                                 Visibility="{Binding IsGenerating, Converter={x:Static BooleanToVisibilityConverter.Instance}, FallbackValue=Collapsed}"/>
+                </StackPanel>
+
+                <Button Grid.Column="1" Content="🚀 Tạo Toàn Bộ Audio Narration (WAV + SRT)" Background="#10B981" Foreground="#FFFFFF" FontWeight="Bold"
+                        FontSize="13" BorderThickness="0" Padding="18,8" Command="{Binding GenerateFullNarrationAudioCommand}"/>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

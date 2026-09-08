@@ -1,0 +1,223 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!-- ============================================================================== -->
+    <!-- CreatorOS Desktop - Principal Systems Engineer Guidelines (Karpathy Pattern)  -->
+    <!-- File: DesignSystem.xaml                                                        -->
+    <!-- Target: .NET 9 WPF Centralized Design Tokens & Dark Slate Pro Workstation      -->
+    <!-- ============================================================================== -->
+
+    <!-- ========================================== -->
+    <!-- 1. COLOR PALETTE: DARK SLATE PRO WORKSTATION -->
+    <!-- ========================================== -->
+    
+    <!-- Base & Surface Colors -->
+    <Color x:Key="ColorObsidianBase">#0B0D13</Color>
+    <Color x:Key="ColorCardSurface">#131722</Color>
+    <Color x:Key="ColorElevatedPanel">#1E2332</Color>
+    <Color x:Key="ColorBorderSubtle">#282F44</Color>
+    <Color x:Key="ColorBorderHighlight">#3E4866</Color>
+
+    <!-- Status & Accent Colors -->
+    <Color x:Key="ColorNeonPurple">#7C3AED</Color>
+    <Color x:Key="ColorEmeraldGreen">#10B981</Color>
+    <Color x:Key="ColorActiveCyan">#06B6D4</Color>
+    <Color x:Key="ColorWarningAmber">#F59E0B</Color>
+    <Color x:Key="ColorErrorCrimson">#EF4444</Color>
+
+    <!-- Text Neutral Colors -->
+    <Color x:Key="ColorTextPrimary">#F8FAFC</Color>
+    <Color x:Key="ColorTextSecondary">#94A3B8</Color>
+    <Color x:Key="ColorTextMuted">#64748B</Color>
+    <Color x:Key="ColorTextInverse">#0B0D13</Color>
+
+    <!-- Solid Color Brushes -->
+    <SolidColorBrush x:Key="ObsidianBaseBrush" Color="{StaticResource ColorObsidianBase}" />
+    <SolidColorBrush x:Key="CardSurfaceBrush" Color="{StaticResource ColorCardSurface}" />
+    <SolidColorBrush x:Key="ElevatedPanelBrush" Color="{StaticResource ColorElevatedPanel}" />
+    <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource ColorBorderSubtle}" />
+    <SolidColorBrush x:Key="BorderHighlightBrush" Color="{StaticResource ColorBorderHighlight}" />
+
+    <SolidColorBrush x:Key="NeonPurpleBrush" Color="{StaticResource ColorNeonPurple}" />
+    <SolidColorBrush x:Key="EmeraldGreenBrush" Color="{StaticResource ColorEmeraldGreen}" />
+    <SolidColorBrush x:Key="ActiveCyanBrush" Color="{StaticResource ColorActiveCyan}" />
+    <SolidColorBrush x:Key="WarningAmberBrush" Color="{StaticResource ColorWarningAmber}" />
+    <SolidColorBrush x:Key="ErrorCrimsonBrush" Color="{StaticResource ColorErrorCrimson}" />
+
+    <!-- Functional Aliases for Modules -->
+    <SolidColorBrush x:Key="AccentPrimaryBrush" Color="{StaticResource ColorNeonPurple}" />
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource ColorEmeraldGreen}" />
+    <SolidColorBrush x:Key="RunningBrush" Color="{StaticResource ColorActiveCyan}" />
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource ColorWarningAmber}" />
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource ColorErrorCrimson}" />
+
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource ColorTextPrimary}" />
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="{StaticResource ColorTextSecondary}" />
+    <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource ColorTextMuted}" />
+    <SolidColorBrush x:Key="TextInverseBrush" Color="{StaticResource ColorTextInverse}" />
+
+    <!-- Transparent / Overlay Brushes -->
+    <SolidColorBrush x:Key="SurfaceHoverBrush" Color="#1F2637" />
+    <SolidColorBrush x:Key="SurfaceActiveBrush" Color="#2A334A" />
+    <SolidColorBrush x:Key="BackdropOverlayBrush" Color="#E60B0D13" />
+
+    <!-- ========================================== -->
+    <!-- 2. GEOMETRY, RADIUS & BORDER TOKENS        -->
+    <!-- ========================================== -->
+    <Thickness x:Key="BorderThicknessDefault">1</Thickness>
+    <Thickness x:Key="BorderThicknessDouble">2</Thickness>
+    
+    <CornerRadius x:Key="ButtonCornerRadius">6</CornerRadius>
+    <CornerRadius x:Key="CardCornerRadius">8</CornerRadius>
+    <CornerRadius x:Key="PillCornerRadius">12</CornerRadius>
+    <CornerRadius x:Key="ModalCornerRadius">10</CornerRadius>
+
+    <!-- ========================================== -->
+    <!-- 3. TYPOGRAPHY: SYSTEM & MICRO TELEMETRY    -->
+    <!-- ========================================== -->
+    <FontFamily x:Key="UiFontFamily">Segoe UI Variable Text, Segoe UI, sans-serif</FontFamily>
+    <FontFamily x:Key="MonoFontFamily">Cascadia Code, Consolas, Courier New, monospace</FontFamily>
+
+    <sys:Double x:Key="FontSizeMicro">10</sys:Double>
+    <sys:Double x:Key="FontSizeSmall">11</sys:Double>
+    <sys:Double x:Key="FontSizeRegular">13</sys:Double>
+    <sys:Double x:Key="FontSizeMedium">15</sys:Double>
+    <sys:Double x:Key="FontSizeLarge">18</sys:Double>
+    <sys:Double x:Key="FontSizeHero">22</sys:Double>
+
+    <!-- ========================================== -->
+    <!-- 4. CONTROL TEMPLATES & STYLES              -->
+    <!-- ========================================== -->
+
+    <!-- Base Workstation Button Style -->
+    <Style x:Key="WorkstationButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="{StaticResource ElevatedPanelBrush}" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderThicknessDefault}" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Padding" Value="12,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource ButtonCornerRadius}"
+                            Padding="{TemplateBinding Padding}"
+                            SnapsToDevicePixels="True">
+                        <ContentPresenter HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                          VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                          RecognizesAccessKey="True" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                            <Setter TargetName="border" Property="BorderBrush" Value="{StaticResource BorderHighlightBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="{StaticResource SurfaceActiveBrush}" />
+                        </Trigger>
+                        <Trigger Property="IsEnabled" Value="False">
+                            <Setter TargetName="border" Property="Opacity" Value="0.45" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Primary Action Button (Neon Purple) -->
+    <Style x:Key="PrimaryActionButtonStyle" TargetType="Button" BasedOn="{StaticResource WorkstationButtonStyle}">
+        <Setter Property="Background" Value="{StaticResource NeonPurpleBrush}" />
+        <Setter Property="Foreground" Value="#FFFFFF" />
+        <Setter Property="BorderBrush" Value="{StaticResource NeonPurpleBrush}" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="border"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource ButtonCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#6D28D9" />
+                        </Trigger>
+                        <Trigger Property="IsPressed" Value="True">
+                            <Setter TargetName="border" Property="Background" Value="#5B21B6" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Subtle Workstation Card Border Style -->
+    <Style x:Key="WorkstationCardStyle" TargetType="Border">
+        <Setter Property="Background" Value="{StaticResource CardSurfaceBrush}" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+        <Setter Property="BorderThickness" Value="{StaticResource BorderThicknessDefault}" />
+        <Setter Property="CornerRadius" Value="{StaticResource CardCornerRadius}" />
+        <Setter Property="Padding" Value="14" />
+    </Style>
+
+    <!-- Sidebar Navigation Item Button Style -->
+    <Style x:Key="SidebarNavButtonStyle" TargetType="Button">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Foreground" Value="{StaticResource TextSecondaryBrush}" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="HorizontalContentAlignment" Value="Left" />
+        <Setter Property="Padding" Value="10,7" />
+        <Setter Property="Margin" Value="0,0,0,2" />
+        <Setter Property="FontFamily" Value="{StaticResource UiFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeSmall}" />
+        <Setter Property="FontWeight" Value="Medium" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="Button">
+                    <Border x:Name="navBorder"
+                            Background="{TemplateBinding Background}"
+                            BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}"
+                            CornerRadius="{StaticResource ButtonCornerRadius}"
+                            Padding="{TemplateBinding Padding}">
+                        <ContentPresenter />
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="navBorder" Property="Background" Value="{StaticResource SurfaceHoverBrush}" />
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                        </Trigger>
+                        <Trigger Property="Tag" Value="Active">
+                            <Setter TargetName="navBorder" Property="Background" Value="{StaticResource ElevatedPanelBrush}" />
+                            <Setter TargetName="navBorder" Property="BorderBrush" Value="{StaticResource NeonPurpleBrush}" />
+                            <Setter TargetName="navBorder" Property="BorderThickness" Value="1" />
+                            <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+                            <Setter Property="FontWeight" Value="Bold" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <!-- Micro Telemetry Value TextBlock Style -->
+    <Style x:Key="TelemetryValueStyle" TargetType="TextBlock">
+        <Setter Property="FontFamily" Value="{StaticResource MonoFontFamily}" />
+        <Setter Property="FontSize" Value="{StaticResource FontSizeMicro}" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+
+</ResourceDictionary>

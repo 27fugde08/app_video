@@ -25,7 +25,38 @@ namespace CreatorOS.Core.Services;
 public sealed class HardwareGovernor : IDisposable
 {
     public const int MaxConcurrentNvenc = 3;
+    public const double VramSafeThresholdPercent = 75.0;
     public const double VramWarningThresholdPercent = 85.0;
+    public const double VramEmergencyInpaintingThresholdPercent = 88.0;
+
+    /// <summary>
+    /// Kiểm tra xem GPU có đủ điều kiện VRAM < 75% để chạy song song 1 tác vụ Demucs/Whisper và 1 tác vụ NVENC Render cho 2 video khác nhau.
+    /// </summary>
+    public bool CanRunParallelDemucsAndNvenc()
+    {
+        var metrics = QueryGpuMemoryMetrics();
+        return metrics.UsagePercent < VramSafeThresholdPercent;
+    }
+
+    /// <summary>
+    /// Kiểm tra xem VRAM có >= 85% để bắt buộc chuyển sang chế độ xử lý tuần tự (Sequential Execution) và giải phóng bộ đệm âm thanh trước.
+    /// </summary>
+    public bool ShouldThrottleToSequential()
+    {
+        var metrics = QueryGpuMemoryMetrics();
+        return metrics.UsagePercent >= VramWarningThresholdPercent;
+    }
+
+    /// <summary>
+    /// Kiểm tra áp lực VRAM trước khi nạp mô hình Inpainting LaMa (ngốn ~1.5GB - 2.5GB).
+    /// Nếu VRAM >= 88%, tự động hạ cấp sang FastDelogo để tránh OOM Exception.
+    /// </summary>
+    public bool ShouldFallbackInpaintingToDelogo(out double currentVramPercent)
+    {
+        var metrics = QueryGpuMemoryMetrics();
+        currentVramPercent = metrics.UsagePercent;
+        return metrics.UsagePercent >= VramEmergencyInpaintingThresholdPercent;
+    }
 
     private readonly SemaphoreSlim _nvencSemaphore = new(MaxConcurrentNvenc, MaxConcurrentNvenc);
     private int _activeNvencCount;

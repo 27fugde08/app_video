@@ -122,15 +122,15 @@ const SEARCH_DATABASE: SearchItem[] = [
   },
   {
     id: "tool-highlight",
-    title: "AI Highlight & Script",
+    title: "⚡ Trích Xuất Shorts 60s & Viral Hook",
     category: "tool",
     categoryLabel: "Video & Editing",
-    description: "Tìm cảnh hay nhất, tạo kịch bản tự động, cắt video viral chuẩn định dạng",
+    description: "Tự động trích xuất cảnh cao trào < 60s từ Whisper transcript & render 9:16 trong Lồng Tiếng",
     icon: Scissors,
-    tabTarget: "highlight",
-    badge: "Viral 98%",
+    tabTarget: "translate",
+    badge: "Shorts 60s",
     badgeColor: "bg-rose-500/20 text-rose-300 border-rose-500/30",
-    keywords: ["highlight", "cắt", "script", "kịch bản", "viral", "cảnh hay", "short", "reels", "tiktok"]
+    keywords: ["highlight", "shorts", "hook", "cắt", "script", "kịch bản", "viral", "cảnh hay", "reels", "tiktok"]
   },
   {
     id: "tool-review",
@@ -153,18 +153,6 @@ const SEARCH_DATABASE: SearchItem[] = [
     badge: "Auto Dub",
     badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/30",
     keywords: ["lồng tiếng video ai", "lồng tiếng", "dịch và lồng tiếng", "translate", "dịch", "phụ đề", "subtitle", "srt", "whisper", "dub", "mạnh dũng", "atp voice", "giọng đọc"]
-  },
-  {
-    id: "tool-semi-edit",
-    title: "Edit Bán Content YouTube & No-Strike",
-    category: "tool",
-    categoryLabel: "Video & Editing",
-    description: "Split-screen, khử bản quyền No-Strike, lật video, overlay filter, render 9:16 / 16:9",
-    icon: Film,
-    tabTarget: "semi-edit",
-    badge: "No-Strike",
-    badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    keywords: ["semi edit", "bán content", "no strike", "bản quyền", "split screen", "youtube", "lật video", "overlay"]
   },
   {
     id: "tool-voice-local",
@@ -356,18 +344,6 @@ const SEARCH_DATABASE: SearchItem[] = [
   },
 
   // TASK WORKFLOWS & USE CASES
-  {
-    id: "wf-reels-nostrike",
-    title: "Quy trình Tạo Reels 9:16 Khử Bản Quyền No-Strike",
-    category: "workflow",
-    categoryLabel: "Kịch Bản Workflow",
-    description: "Tự động crop dọc 9:16, chèn video background split-screen, đảo màu và lật frame",
-    icon: Film,
-    tabTarget: "semi-edit",
-    badge: "Kịch Bản",
-    badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/30",
-    keywords: ["quy trình", "kịch bản", "reels", "9:16", "khử bản quyền", "no strike", "split screen", "lật hình"]
-  },
   {
     id: "wf-lipsync-dub",
     title: "Quy trình Đồng Bộ Khẩu Hình Môi (Lip-Sync Dubbing)",

@@ -305,7 +305,7 @@ export const GlobalTaskQueueModal: React.FC = () => {
                 </div>
               </div>
               <p className="text-xs text-slate-400">
-                Theo dõi tiến trình tải hàng loạt, edit bán content & dịch thuật video
+                Theo dõi tiến trình tải hàng loạt, xử lý Shield / Timeline & dịch thuật video
               </p>
             </div>
           </div>
@@ -723,7 +723,7 @@ export const GlobalTaskQueueModal: React.FC = () => {
               <div>
                 <p className="text-sm font-semibold text-slate-300">Không có tác vụ nào trong hàng đợi</p>
                 <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                  Khi bạn bấm Tải hàng loạt, Render Edit Bán Content hoặc Dịch video, các tiến trình sẽ hiển thị trực tiếp tại đây.
+                  Khi bạn bấm Tải hàng loạt, Render Timeline Studio hoặc Dịch video, các tiến trình sẽ hiển thị trực tiếp tại đây.
                 </p>
               </div>
               <button

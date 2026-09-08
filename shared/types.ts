@@ -16,7 +16,6 @@ export type ActiveTab =
   | "highlight"
   | "review"
   | "translate"
-  | "semi-edit"
   | "voice-local"
   | "seo-suite"
   | "batch-downloader"
@@ -34,7 +33,6 @@ export type ActiveTab =
   | "dashboard"
   | "api-docs"
   | "user-guide"
-  | "csharp-wpf"
   | "decoupled-queue";
 
 // Highlight Tool Types

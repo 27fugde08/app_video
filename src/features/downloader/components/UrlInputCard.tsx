@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Link2,
   Play,
@@ -12,9 +12,14 @@ import {
   Upload,
   Mic,
   Zap,
-  FolderSearch
+  FolderSearch,
+  Filter,
+  CheckCircle2,
+  Sparkle
 } from "lucide-react";
 import { soundSynth } from "../../../utils/audioUtils";
+import { detectPlatform, sanitizeAndCleanUrls } from "../services/downloaderService";
+import { useToast } from "../../../context/ToastContext";
 
 interface UrlInputCardProps {
   rawUrlInput: string;
@@ -50,6 +55,7 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
   onLoadMockTestData
 }) => {
   const [isDraggingFile, setIsDraggingFile] = useState<boolean>(false);
+  const { addToast } = useToast();
 
   const handlePasteClipboard = async () => {
     try {
@@ -57,22 +63,61 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
       if (text) {
         setRawUrlInput(rawUrlInput ? `${rawUrlInput}\n${text}` : text);
         soundSynth.playSfx("pop");
+        addToast("Đã dán liên kết từ bộ nhớ tạm", "info");
       }
     } catch (e) {
       console.warn("Clipboard access denied", e);
     }
   };
 
+  const handleCleanTrackingUrls = () => {
+    soundSynth.playSfx("pop");
+    const cleaned = sanitizeAndCleanUrls(rawUrlInput);
+    if (cleaned.length > 0) {
+      setRawUrlInput(cleaned.join("\n"));
+      addToast(`Đã dọn sạch tracking params cho ${cleaned.length} liên kết`, "success");
+    }
+  };
+
+  const handleDeduplicateUrls = () => {
+    soundSynth.playSfx("pop");
+    const lines = rawUrlInput.split(/[\r\n]+/).map((l) => l.trim()).filter(Boolean);
+    const unique = Array.from(new Set(lines));
+    const duplicatesRemoved = lines.length - unique.length;
+    setRawUrlInput(unique.join("\n"));
+    if (duplicatesRemoved > 0) {
+      addToast(`Đã loại bỏ ${duplicatesRemoved} liên kết bị trùng lặp`, "success");
+    } else {
+      addToast("Không có liên kết nào bị trùng lặp", "info");
+    }
+  };
+
   const handleInsertDemoUrls = () => {
     const demo = [
-      "https://www.tiktok.com/@creator/video/730372860995515653",
+      "https://www.tiktok.com/@creator/video/730372860995515653?utm_source=share",
       "https://www.douyin.com/video/7345678912345678901",
-      "https://www.facebook.com/reel/1423859201582910",
-      "https://www.youtube.com/shorts/3fM4pU8qW4Y"
+      "https://www.youtube.com/shorts/3fM4pU8qW4Y?si=tracking123",
+      "https://www.facebook.com/reel/1423859201582910?fbclid=IwAR0",
+      "https://www.instagram.com/reel/C123456789/?igsh=tracking",
+      "https://www.xiaohongshu.com/explore/64f0123456789"
     ].join("\n");
     setRawUrlInput(demo);
     soundSynth.playSfx("pop");
+    addToast("Đã nạp danh sách 6 nền tảng mẫu (TikTok, Douyin, YT, FB, Insta, XHS)", "info");
   };
+
+  // Live breakdown of platforms in input text
+  const platformBreakdown = useMemo(() => {
+    if (!rawUrlInput.trim()) return [];
+    const lines = rawUrlInput.split(/[\r\n]+/).map((l) => l.trim()).filter((l) => l.length > 5);
+    const counts: Record<string, number> = {};
+    for (const line of lines) {
+      const p = detectPlatform(line);
+      counts[p] = (counts[p] || 0) + 1;
+    }
+    return Object.entries(counts).map(([platform, count]) => ({ platform, count }));
+  }, [rawUrlInput]);
+
 
   const handleFileDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -152,14 +197,15 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
         </div>
 
         {/* Quick helper buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <label className="px-2.5 py-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm">
             <Upload className="w-3 h-3 text-emerald-400" />
-            <span className="hidden sm:inline">Nạp File .TXT</span>
+            <span className="hidden sm:inline">Nạp File</span>
             <input type="file" accept=".txt,.csv" onChange={handleFileInputChange} className="hidden" />
           </label>
 
           <button
+            type="button"
             onClick={handlePasteClipboard}
             className="px-2.5 py-1.5 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 hover:text-white border border-white/10 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
             title="Dán từ bộ nhớ tạm"
@@ -169,11 +215,34 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
           </button>
 
           <button
+            type="button"
+            onClick={handleCleanTrackingUrls}
+            disabled={!rawUrlInput.trim()}
+            className="px-2.5 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 disabled:opacity-40 text-cyan-300 border border-cyan-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            title="Dọn sạch tracking query strings (?utm_source, &fbclid, &si, &igsh...)"
+          >
+            <Sparkles className="w-3 h-3 text-cyan-400" />
+            <span>Dọn Tracking</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDeduplicateUrls}
+            disabled={!rawUrlInput.trim()}
+            className="px-2.5 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 disabled:opacity-40 text-blue-300 border border-blue-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+            title="Loại bỏ các link trùng lặp trong ô nhập"
+          >
+            <Filter className="w-3 h-3 text-blue-400" />
+            <span>Lọc Trùng</span>
+          </button>
+
+          <button
+            type="button"
             onClick={handleInsertDemoUrls}
             className="px-2.5 py-1.5 rounded-lg bg-violet-500/15 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
-            title="Nạp liên kết mẫu 4 nền tảng"
+            title="Nạp liên kết mẫu 6 nền tảng"
           >
-            <Sparkles className="w-3 h-3 text-violet-400" />
+            <Sparkle className="w-3 h-3 text-violet-400" />
             <span className="hidden sm:inline">Mẫu link</span>
           </button>
 
@@ -185,12 +254,13 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
               title="Nạp dữ liệu mẫu 6 trạng thái để kiểm thử toàn diện luồng xử lý Frontend ↔ Backend"
             >
               <Zap className="w-3 h-3 text-amber-400 fill-amber-400" />
-              <span>🧪 Nạp Test Luồng (FE ↔ BE)</span>
+              <span>🧪 Test Luồng</span>
             </button>
           )}
 
           {rawUrlInput && (
             <button
+              type="button"
               onClick={() => {
                 setRawUrlInput("");
                 soundSynth.playSfx("pop");
@@ -202,6 +272,26 @@ export const UrlInputCard: React.FC<UrlInputCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Live Platform Breakdown Pills */}
+      {platformBreakdown.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap text-[11px] py-1 border-t border-b border-white/[0.04]">
+          <span className="text-slate-400 font-semibold flex items-center gap-1">
+            <CheckCircle2 className="w-3 h-3 text-cyan-400" />
+            Phân loại phát hiện:
+          </span>
+          {platformBreakdown.map((item) => (
+            <span
+              key={item.platform}
+              className="px-2 py-0.5 rounded-md bg-white/[0.04] border border-white/10 text-slate-200 font-mono font-bold flex items-center gap-1"
+            >
+              <span className="capitalize">{item.platform}:</span>
+              <strong className="text-cyan-300">{item.count}</strong>
+            </span>
+          ))}
+        </div>
+      )}
+
 
       {/* Multi-line URL Textarea with Drag & Drop */}
       <div 

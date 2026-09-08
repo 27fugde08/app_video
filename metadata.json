@@ -1,6 +1,6 @@
 {
   "name": "CreatorOS Desktop",
-  "description": "Professional AI Content Creator Operating System with Immersive UI desktop shell, batch processing, AI workflows, and C# WPF architecture exporter.",
+  "description": "Professional AI Content Creator Operating System with batch processing, video translation, voice studio, and multi-channel automation tools.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

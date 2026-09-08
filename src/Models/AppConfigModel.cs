@@ -23,6 +23,12 @@ public sealed class AppConfigModel
     public bool EnableHardwareAcceleration { get; set; } = true;
     public string PreferredAudioLanguage { get; set; } = "vi";
     public string WhisperModel { get; set; } = "ggml-base.bin";
+
+    // Smart Output Router & Asset Packager Configuration
+    public string OutputPatternTemplate { get; set; } = @"{BaseDir}\{Platform}\{Date:yyyy-MM}\{Author}\{Resolution}\{Title}";
+    public bool DeleteOriginalAfterPackaging { get; set; } = false;
+    public bool PurgeIntermediateStems { get; set; } = true;
+    public int FileCollisionMode { get; set; } = 0; // 0: AutoIncrement, 1: Overwrite, 2: Skip
 }
 
 /// <summary>

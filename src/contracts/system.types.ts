@@ -16,10 +16,10 @@ export type ActiveTab =
   | "highlight"
   | "review"
   | "translate"
-  | "semi-edit"
   | "voice-local"
   | "seo-suite"
   | "batch-downloader"
+  | "downloaded-videos"
   | "ai-comic"
   | "phone-farm"
   | "fb-suite"
@@ -27,7 +27,7 @@ export type ActiveTab =
   | "api-docs"
   | "user-guide"
   | "csharp-wpf"
-  | "decoupled-queue";
+  | "settings";
 
 export type BackendConnectionStatus = "connected" | "connecting" | "polling" | "disconnected" | "simulation";
 

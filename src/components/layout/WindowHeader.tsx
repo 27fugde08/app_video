@@ -49,7 +49,7 @@ export const WindowHeader: React.FC<WindowHeaderProps> = ({
   };
 
   return (
-    <header className="h-12 flex items-center justify-between px-3 sm:px-4 border-b border-white/[0.08] bg-[#07090f]/95 backdrop-blur-xl sticky top-0 z-50 text-[#e0e0e0] select-none shadow-md">
+    <header className="h-[44px] flex items-center justify-between px-3 sm:px-4 border-b border-[#282F44] bg-[#131722] sticky top-0 z-50 text-[#e0e0e0] select-none shadow-md">
       {/* Brand Identity & Global Search */}
       <div className="flex items-center gap-3 sm:gap-4 flex-1 max-w-2xl mr-3">
         {/* App Logo */}
@@ -61,15 +61,15 @@ export const WindowHeader: React.FC<WindowHeaderProps> = ({
           }}
           title="Về Dashboard Tổng Quan"
         >
-          <div className="w-7 h-7 bg-gradient-to-tr from-cyan-500 via-indigo-500 to-violet-600 rounded-lg shadow-md shadow-violet-500/25 flex items-center justify-center group-hover:scale-105 transition-transform border border-white/15">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse shadow-sm"></div>
+          <div className="w-6 h-6 bg-gradient-to-tr from-[#06B6D4] to-[#7C3AED] rounded-[6px] shadow-sm flex items-center justify-center group-hover:scale-105 transition-transform border border-white/15">
+            <span className="text-white text-xs font-black">⚡</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="text-xs sm:text-sm font-extrabold tracking-wider uppercase text-white group-hover:text-cyan-300 transition-colors font-mono">
-              Creator<span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-violet-400 font-black">OS</span>
+            <span className="text-xs sm:text-sm font-black tracking-wider uppercase text-white group-hover:text-[#06B6D4] transition-colors font-mono">
+              CREATOR<span className="text-[#06B6D4]">OS</span>
             </span>
-            <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-1.5 py-0.5 rounded bg-violet-500/20 text-violet-300 border border-violet-500/30 shadow-inner">
-              {licenseTier}
+            <span className="text-[9px] uppercase font-mono font-bold tracking-wider px-1.5 py-0.5 rounded-[4px] bg-[#1E2332] text-[#7C3AED] border border-[#7C3AED]/40 shadow-inner">
+              #PRO_V48
             </span>
           </div>
         </div>

@@ -1,0 +1,540 @@
+<UserControl x:Class="CreatorOS.Desktop.Wpf.Views.DubbingScriptEditorView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:views="clr-namespace:CreatorOS.Desktop.Wpf.Views"
+             xmlns:viewmodels="clr-namespace:CreatorOS.Desktop.Wpf.ViewModels"
+             mc:Ignorable="d" 
+             d:DesignHeight="850" d:DesignWidth="1300"
+             Background="#0B1120"
+             Focusable="True">
+
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
+
+        <!-- Style cho ScrollBar mượt mà -->
+        <Style TargetType="{x:Type ScrollBar}">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Width" Value="10"/>
+        </Style>
+
+        <!-- Style cho ComboBox Giọng đọc -->
+        <Style x:Key="ModernVoiceComboStyle" TargetType="{x:Type ComboBox}">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#475569"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="6,4"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <!-- Style cho TextBox Thoại lồng tiếng -->
+        <Style x:Key="ScriptTextBoxStyle" TargetType="{x:Type TextBox}">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="Foreground" Value="#F8FAFC"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Padding" Value="8,6"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="FontFamily" Value="Segoe UI, Inter, Arial"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="AcceptsReturn" Value="False"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Style.Triggers>
+                <Trigger Property="IsFocused" Value="True">
+                    <Setter Property="BorderBrush" Value="#38BDF8"/>
+                    <Setter Property="Background" Value="#131D33"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
+        <!-- Style cho DataGrid Header -->
+        <Style x:Key="DarkDataGridColumnHeader" TargetType="{x:Type DataGridColumnHeader}">
+            <Setter Property="Background" Value="#1E293B"/>
+            <Setter Property="Foreground" Value="#94A3B8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Padding" Value="10,8"/>
+            <Setter Property="BorderBrush" Value="#334155"/>
+            <Setter Property="BorderThickness" Value="0,0,1,1"/>
+            <Setter Property="HorizontalContentAlignment" Value="Left"/>
+        </Style>
+
+        <!-- Style cho DataGrid Row với Hover & Selection -->
+        <Style x:Key="VirtualizingScriptRowStyle" TargetType="{x:Type DataGridRow}">
+            <Setter Property="Background" Value="#0F172A"/>
+            <Setter Property="BorderBrush" Value="#1E293B"/>
+            <Setter Property="BorderThickness" Value="0,0,0,1"/>
+            <Setter Property="Margin" Value="0"/>
+            <Setter Property="SnapsToDevicePixels" Value="True"/>
+            <EventSetter Event="MouseDoubleClick" Handler="OnRowMouseDoubleClick"/>
+            <Style.Triggers>
+                <Trigger Property="IsMouseOver" Value="True">
+                    <Setter Property="Background" Value="#17223B"/>
+                </Trigger>
+                <Trigger Property="IsSelected" Value="True">
+                    <Setter Property="Background" Value="#1E2C4D"/>
+                    <Setter Property="BorderBrush" Value="#0284C7"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <!-- Header Toolbar & Syllable Stats -->
+            <RowDefinition Height="Auto"/>
+            <!-- Main Content: Left Virtualized Grid, Right D3D Video & Audio Inspector -->
+            <RowDefinition Height="*"/>
+            <!-- Bottom Status Bar -->
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 1. Header Toolbar: Tiêu đề, Thống kê thước đo, Nút kiểm thử 200 dòng, Phím tắt hướng dẫn -->
+        <Border Grid.Row="0" Background="#1E293B" CornerRadius="8" Padding="14,10" Margin="0,0,0,10" BorderBrush="#334155" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <!-- Studio Title & Quick Stats -->
+                    <ColumnDefinition Width="Auto"/>
+                    <!-- Syllable Health Meters -->
+                    <ColumnDefinition Width="*"/>
+                    <!-- Actions & Benchmark Buttons -->
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Left: Title & Subtitle -->
+                <StackPanel Grid.Column="0" VerticalAlignment="Center" Margin="0,0,20,0">
+                    <StackPanel Orientation="Horizontal">
+                        <TextBlock Text="🎬" FontSize="18" Margin="0,0,8,0" VerticalAlignment="Center"/>
+                        <TextBlock Text="BIÊN TẬP KỊCH BẢN LỒNG TIẾNG" Foreground="#F8FAFC" FontSize="15" FontWeight="Bold" VerticalAlignment="Center"/>
+                        <Border Background="#0284C7" CornerRadius="4" Margin="10,0,0,0" Padding="6,2" VerticalAlignment="Center">
+                            <TextBlock Text="60 FPS RECYCLING" Foreground="#FFFFFF" FontSize="10" FontWeight="Bold"/>
+                        </Border>
+                    </StackPanel>
+                    <TextBlock Text="Căn nhịp âm tiết thời gian thực [Target ±1] • Tối ưu 1-Click Gemini • Đồng bộ D3D11 NVDEC" 
+                               Foreground="#94A3B8" FontSize="11" Margin="26,2,0,0"/>
+                </StackPanel>
+
+                <!-- Center: Syllable Health Counters -->
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <!-- Total Lines -->
+                    <Border Background="#0F172A" CornerRadius="6" Padding="10,5" Margin="0,0,8,0" BorderBrush="#334155" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="Tổng câu: " Foreground="#94A3B8" FontSize="11"/>
+                            <TextBlock Text="{Binding TotalLines}" Foreground="#F8FAFC" FontWeight="Bold" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Perfect Syllables (Green) -->
+                    <Border Background="#064E3B" CornerRadius="6" Padding="10,5" Margin="0,0,8,0" BorderBrush="#059669" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="● Khớp chuẩn: " Foreground="#A7F3D0" FontSize="11"/>
+                            <TextBlock Text="{Binding PerfectCount}" Foreground="#34D399" FontWeight="Bold" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Warning Syllables (Amber) -->
+                    <Border Background="#78350F" CornerRadius="6" Padding="10,5" Margin="0,0,8,0" BorderBrush="#D97706" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="▲ Cần co giãn: " Foreground="#FDE68A" FontSize="11"/>
+                            <TextBlock Text="{Binding WarningCount}" Foreground="#FBBF24" FontWeight="Bold" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Danger Syllables (Red) -->
+                    <Border Background="#7F1D1D" CornerRadius="6" Padding="10,5" Margin="0,0,8,0" BorderBrush="#DC2626" BorderThickness="1">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="✕ Quá dài: " Foreground="#FECACA" FontSize="11"/>
+                            <TextBlock Text="{Binding DangerCount}" Foreground="#F87171" FontWeight="Bold" FontSize="12"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+
+                <!-- Right: Phím tắt & Nút tải 200 câu Benchmark -->
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                    <!-- Hotkey Badges -->
+                    <Border Background="#0F172A" CornerRadius="4" Padding="6,4" Margin="0,0,6,0" BorderBrush="#334155" BorderThickness="1"
+                            ToolTip="Phím Space: Phát / Tạm dừng video">
+                        <TextBlock Text="Space: Play/Pause" Foreground="#94A3B8" FontSize="10" FontWeight="SemiBold"/>
+                    </Border>
+                    <Border Background="#0F172A" CornerRadius="4" Padding="6,4" Margin="0,0,12,0" BorderBrush="#334155" BorderThickness="1"
+                            ToolTip="Phím Tab: Nghe thử file TTS của câu hiện tại">
+                        <TextBlock Text="Tab: Nghe thử" Foreground="#94A3B8" FontSize="10" FontWeight="SemiBold"/>
+                    </Border>
+
+                    <!-- Button Benchmark 200 câu -->
+                    <Button Command="{Binding LoadBenchmark200LinesCommand}" 
+                            Background="#0284C7" Foreground="#FFFFFF" BorderThickness="0" 
+                            Padding="12,6" FontWeight="SemiBold" FontSize="11" Cursor="Hand">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Text="⚡ Tải 200 câu (Benchmark 60 FPS)" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 2. Main Studio Area: Left = Virtualized Grid (Width=*), Right = D3D11 Player & Inspector (Width=420) -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <!-- Bảng danh sách lời thoại đa năng -->
+                <ColumnDefinition Width="*" MinWidth="600"/>
+                <!-- Splitter -->
+                <ColumnDefinition Width="6"/>
+                <!-- D3D Video Canvas & Audio Studio Inspector -->
+                <ColumnDefinition Width="430" MinWidth="340" MaxWidth="600"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- LEFT: Virtualizing Script Grid (Tối ưu hóa 60 FPS với VirtualizationMode=Recycling) -->
+            <Border Grid.Column="0" Background="#111827" CornerRadius="8" BorderBrush="#1E293B" BorderThickness="1" ClipToBounds="True">
+                <DataGrid x:Name="ScriptDataGrid"
+                          ItemsSource="{Binding ScriptLines}"
+                          SelectedItem="{Binding SelectedItem, Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          CanUserResizeRows="False"
+                          CanUserReorderColumns="False"
+                          IsReadOnly="False"
+                          SelectionMode="Single"
+                          SelectionUnit="FullRow"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="#1E293B"
+                          HeadersVisibility="Column"
+                          ColumnHeaderStyle="{StaticResource DarkDataGridColumnHeader}"
+                          RowStyle="{StaticResource VirtualizingScriptRowStyle}"
+                          Background="Transparent"
+                          BorderThickness="0"
+                          VirtualizingStackPanel.IsVirtualizing="True"
+                          VirtualizingStackPanel.VirtualizationMode="Recycling"
+                          VirtualizingStackPanel.IsVirtualizingWhenGrouping="True"
+                          VirtualizingStackPanel.ScrollUnit="Pixel"
+                          ScrollViewer.IsDeferredScrollingEnabled="False"
+                          ScrollViewer.CanContentScroll="True"
+                          EnableRowVirtualization="True"
+                          EnableColumnVirtualization="False">
+
+                    <DataGrid.Columns>
+                        <!-- Cột 1: ID & Mốc thời gian (Bắt đầu - Kết thúc, Duration) -->
+                        <DataGridTemplateColumn Header="MỐC THỜI GIAN" Width="145" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center" Margin="8,4">
+                                        <StackPanel Orientation="Horizontal">
+                                            <Border Background="#1E293B" CornerRadius="3" Padding="4,1" Margin="0,0,4,0">
+                                                <TextBlock Text="{Binding Id, StringFormat='#{0}'}" Foreground="#38BDF8" FontSize="10" FontWeight="Bold"/>
+                                            </Border>
+                                            <TextBlock Text="{Binding TimeRangeFormatted}" Foreground="#CBD5E1" FontSize="11" FontFamily="Consolas, Segoe UI"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 2: Người nói & ComboBox đổi giọng đọc / vai nhân vật -->
+                        <DataGridTemplateColumn Header="NGƯỜI NÓI / GIỌNG ĐỌC" Width="170">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center" Margin="6,4">
+                                        <StackPanel Orientation="Horizontal" Margin="0,0,0,3">
+                                            <TextBlock Text="🗣" FontSize="12" Margin="0,0,4,0" VerticalAlignment="Center"/>
+                                            <TextBlock Text="{Binding SpeakerId}" Foreground="#F8FAFC" FontWeight="SemiBold" FontSize="11" VerticalAlignment="Center"/>
+                                        </StackPanel>
+                                        <ComboBox ItemsSource="{Binding AvailableVoices}" 
+                                                  SelectedItem="{Binding SelectedVoice, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                                  Style="{StaticResource ModernVoiceComboStyle}" 
+                                                  Height="24"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 3: Thoại gốc (Foreign Subtitle) -->
+                        <DataGridTemplateColumn Header="THOẠI GỐC (SUBTITLE)" Width="1.2*" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding OriginalText}" 
+                                               Foreground="#94A3B8" 
+                                               FontSize="12" 
+                                               TextWrapping="Wrap" 
+                                               VerticalAlignment="Center" 
+                                               Margin="8,6"
+                                               LineHeight="16"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 4: Thoại lồng tiếng (TextBox gõ chỉnh sửa trực tiếp, UpdateSourceTrigger=PropertyChanged) -->
+                        <DataGridTemplateColumn Header="THOẠI LỒNG TIẾNG (DỊCH PHÒNG THU)" Width="2*">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="4,3">
+                                        <TextBox Text="{Binding VietnameseText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" 
+                                                 Style="{StaticResource ScriptTextBoxStyle}"
+                                                 MinHeight="40"
+                                                 VerticalAlignment="Center"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 5: Thước đo âm tiết (Syllable Meter) Badge màu trực quan -->
+                        <DataGridTemplateColumn Header="THƯỚC ĐO ÂM TIẾT" Width="135" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4">
+                                        <!-- Syllable Badge: 10/10 (Green), 12/10 (Amber), 15/10 (Red) -->
+                                        <Border CornerRadius="4" Padding="8,3" HorizontalAlignment="Center"
+                                                BorderThickness="1" BorderBrush="#334155">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding SyllableBadgeColor, FallbackValue=#10B981}"/>
+                                            </Border.Background>
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="{Binding SyllableRatioText}" 
+                                                           Foreground="#FFFFFF" 
+                                                           FontWeight="Bold" 
+                                                           FontSize="12"/>
+                                                <TextBlock Text=" từ" Foreground="#E2E8F0" FontSize="10" VerticalAlignment="Center" Margin="2,0,0,0"/>
+                                            </StackPanel>
+                                        </Border>
+                                        <!-- Sub Status Text: Khớp chuẩn / Hơi dài / Quá dài -->
+                                        <TextBlock Text="{Binding SyllableStatusText}" 
+                                                   Foreground="#94A3B8" 
+                                                   FontSize="10" 
+                                                   HorizontalAlignment="Center" 
+                                                   Margin="0,3,0,0"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 6: Cảm xúc (Emotion Tag Badge) -->
+                        <DataGridTemplateColumn Header="CẢM XÚC" Width="100" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Margin="4">
+                                        <Border CornerRadius="10" Padding="8,2" HorizontalAlignment="Center" BorderThickness="1" BorderBrush="#475569">
+                                            <Border.Background>
+                                                <SolidColorBrush Color="{Binding EmotionBadgeColor, FallbackValue=#334155}"/>
+                                            </Border.Background>
+                                            <TextBlock Text="{Binding Emotion}" Foreground="#F8FAFC" FontSize="10" FontWeight="SemiBold"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding SpeedMultiplier, StringFormat='{}{0:F2}x tốc độ'}" 
+                                                   Foreground="#64748B" FontSize="9" HorizontalAlignment="Center" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+
+                        <!-- Cột 7: Thao tác (Gemini Re-Fit 1-Click & Nghe thử TTS) -->
+                        <DataGridTemplateColumn Header="THAO TÁC" Width="185" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center" Margin="4">
+                                        <!-- Nút Tối ưu lại (Gemini Re-Fit) -->
+                                        <Button Command="{Binding DataContext.ReFitLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="#059669" Foreground="#FFFFFF" BorderThickness="0"
+                                                Padding="8,5" Margin="0,0,6,0" Cursor="Hand"
+                                                ToolTip="Tối ưu lại 1 câu duy nhất khớp chính xác số từ mục tiêu bằng Gemini Re-Fit (< 350ms)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="⚡" Margin="0,0,3,0"/>
+                                                <TextBlock Text="Tối ưu lại" FontWeight="SemiBold" FontSize="11"/>
+                                            </StackPanel>
+                                        </Button>
+
+                                        <!-- Nút Nghe thử (TTS Preview) -->
+                                        <Button Command="{Binding DataContext.PreviewTtsCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                CommandParameter="{Binding}"
+                                                Background="#334155" Foreground="#F8FAFC" BorderThickness="0"
+                                                Padding="8,5" Cursor="Hand"
+                                                ToolTip="Nghe thử file TTS của câu hiện tại (In-Memory PCM)">
+                                            <StackPanel Orientation="Horizontal">
+                                                <TextBlock Text="🔊" Margin="0,0,3,0"/>
+                                                <TextBlock Text="Nghe thử" FontSize="11"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Border>
+
+            <!-- Grid Splitter -->
+            <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="#1E293B" Cursor="SizeWE"/>
+
+            <!-- RIGHT: D3DVideoCanvas Direct3D 11 Video Player & Audio Studio Inspector -->
+            <Border Grid.Column="2" Background="#111827" CornerRadius="8" BorderBrush="#1E293B" BorderThickness="1" Padding="14">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <!-- D3D Video Player Header -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Video Display Canvas -->
+                        <RowDefinition Height="240"/>
+                        <!-- Video Scrubber & Playback Controls -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Inspector Divider -->
+                        <RowDefinition Height="Auto"/>
+                        <!-- Selected Dialogue Inspector & Waveform Details -->
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <!-- Section Header -->
+                    <Grid Grid.Row="0" Margin="0,0,0,8">
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="📺" FontSize="14" Margin="0,0,6,0" VerticalAlignment="Center"/>
+                            <TextBlock Text="XEM TRƯỚC DIRECT3D 11 (GPU NVDEC)" Foreground="#F8FAFC" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>
+                        </StackPanel>
+                        <TextBlock Text="Nhấp đúp dòng để tua" Foreground="#64748B" FontSize="10" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                    </Grid>
+
+                    <!-- D3D Video Surface Canvas -->
+                    <Border Grid.Row="1" Background="#000000" CornerRadius="6" BorderBrush="#334155" BorderThickness="1" ClipToBounds="True">
+                        <views:D3DVideoCanvas x:Name="PlayerCanvas"
+                                              Source="{Binding VideoSourcePath}" 
+                                              Position="{Binding CurrentPlaybackTimestamp}"/>
+                    </Border>
+
+                    <!-- Video Controls (Play/Pause, Position, Loop Toggle) -->
+                    <StackPanel Grid.Row="2" Margin="0,8,0,0">
+                        <Grid Margin="0,0,0,6">
+                            <TextBlock Text="{Binding CurrentPlaybackTimestamp, StringFormat='Mốc: {0:F2}s'}" Foreground="#38BDF8" FontSize="11" FontWeight="SemiBold"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <CheckBox IsChecked="{Binding IsLoopingSegment}" Content="Lặp lại câu đang chọn" Foreground="#94A3B8" FontSize="11"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <!-- Space shortcut button -->
+                            <Button Grid.Column="0" Command="{Binding ToggleVideoPlayPauseCommand}"
+                                    Background="#0284C7" Foreground="#FFFFFF" BorderThickness="0"
+                                    Padding="12,5" Margin="0,0,8,0" FontWeight="SemiBold" FontSize="11">
+                                <TextBlock Text="{Binding IsVideoPlaying, Converter={x:Null}, FallbackValue='▶ Phát / Dừng (Space)'}"/>
+                            </Button>
+
+                            <!-- Scrubber Slider -->
+                            <Slider Grid.Column="1" 
+                                    Value="{Binding CurrentPlaybackTimestamp, Mode=TwoWay}" 
+                                    Minimum="0" Maximum="300"
+                                    SmallChange="0.1" LargeChange="1.0"
+                                    VerticalAlignment="Center"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Divider -->
+                    <Separator Grid.Row="3" Background="#1E293B" Margin="0,12,0,12"/>
+
+                    <!-- Selected Dialogue Details & Micro Gemini Re-Fit Box -->
+                    <ScrollViewer Grid.Row="4" VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <TextBlock Text="🔍 CHI TIẾT CÂU THOẠI ĐANG CHỌN" Foreground="#94A3B8" FontWeight="Bold" FontSize="11" Margin="0,0,0,8"/>
+
+                            <!-- Time & Target Info Card -->
+                            <Border Background="#1E293B" CornerRadius="6" Padding="10" Margin="0,0,0,10" BorderBrush="#334155" BorderThickness="1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                        <RowDefinition Height="Auto"/>
+                                    </Grid.RowDefinitions>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*"/>
+                                        <ColumnDefinition Width="*"/>
+                                    </Grid.ColumnDefinitions>
+
+                                    <!-- Row 0: ID & Speaker -->
+                                    <TextBlock Grid.Row="0" Grid.Column="0" 
+                                               Text="{Binding SelectedItem.Id, StringFormat='Câu: #{0}'}" 
+                                               Foreground="#F8FAFC" FontWeight="Bold" FontSize="12"/>
+                                    <TextBlock Grid.Row="0" Grid.Column="1" 
+                                               Text="{Binding SelectedItem.SpeakerId}" 
+                                               Foreground="#38BDF8" FontWeight="SemiBold" FontSize="12" HorizontalAlignment="Right"/>
+
+                                    <!-- Row 1: Time Interval -->
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                               Text="{Binding SelectedItem.TimeRangeFormatted}" 
+                                               Foreground="#94A3B8" FontSize="11" Margin="0,4,0,4"/>
+
+                                    <!-- Row 2: Target vs Actual Syllables -->
+                                    <StackPanel Grid.Row="2" Grid.Column="0" Orientation="Horizontal" Margin="0,4,0,0">
+                                        <TextBlock Text="Mục tiêu: " Foreground="#94A3B8" FontSize="11"/>
+                                        <TextBlock Text="{Binding SelectedItem.TargetSyllables, StringFormat='{}{0} từ'}" Foreground="#FCD34D" FontWeight="Bold" FontSize="11"/>
+                                    </StackPanel>
+
+                                    <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,4,0,0">
+                                        <TextBlock Text="Thực tế: " Foreground="#94A3B8" FontSize="11"/>
+                                        <TextBlock Text="{Binding SelectedItem.ActualSyllables, StringFormat='{}{0} từ'}" 
+                                                   FontWeight="Bold" FontSize="11">
+                                            <TextBlock.Foreground>
+                                                <SolidColorBrush Color="{Binding SelectedItem.SyllableBadgeColor, FallbackValue=#10B981}"/>
+                                            </TextBlock.Foreground>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+
+                            <!-- Big 1-Click Action Buttons -->
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="8"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+
+                                <!-- 1-Click Gemini Re-Fit -->
+                                <Button Grid.Column="0" 
+                                        Command="{Binding ReFitLineCommand}" 
+                                        CommandParameter="{Binding SelectedItem}"
+                                        Background="#059669" Foreground="#FFFFFF" BorderThickness="0"
+                                        Padding="10,8" Cursor="Hand" FontWeight="Bold" FontSize="12">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="⚡" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Gemini Re-Fit"/>
+                                    </StackPanel>
+                                </Button>
+
+                                <!-- In-Memory Preview TTS -->
+                                <Button Grid.Column="2" 
+                                        Command="{Binding PreviewTtsCommand}" 
+                                        CommandParameter="{Binding SelectedItem}"
+                                        Background="#334155" Foreground="#F8FAFC" BorderThickness="0"
+                                        Padding="10,8" Cursor="Hand" FontWeight="SemiBold" FontSize="12">
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <TextBlock Text="🔊" Margin="0,0,4,0"/>
+                                        <TextBlock Text="Nghe thử TTS"/>
+                                    </StackPanel>
+                                </Button>
+                            </Grid>
+
+                            <!-- API Key Input for Gemini -->
+                            <TextBlock Text="KHÓA GEMINI API KEY (TÙY CHỌN):" Foreground="#64748B" FontSize="10" FontWeight="Bold" Margin="0,4,0,4"/>
+                            <TextBox Text="{Binding GeminiApiKey, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     Style="{StaticResource ScriptTextBoxStyle}"
+                                     FontSize="11" Padding="8,4" Margin="0,0,0,4"
+                                     ToolTip="Tự động đọc từ biến môi trường GEMINI_API_KEY hoặc dán trực tiếp tại đây"/>
+                        </StackPanel>
+                    </ScrollViewer>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- 3. Bottom Status Bar -->
+        <Border Grid.Row="2" Background="#1E293B" CornerRadius="6" Padding="12,6" Margin="0,10,0,0" BorderBrush="#334155" BorderThickness="1">
+            <Grid>
+                <TextBlock Text="{Binding StatusMessage}" Foreground="#E2E8F0" FontSize="11" VerticalAlignment="Center"/>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <TextBlock Text="Direct3D 11 Hardware Surface" Foreground="#38BDF8" FontSize="10" Margin="0,0,12,0"/>
+                    <TextBlock Text="Studio Rate: 3.8 syllables/s" Foreground="#10B981" FontSize="10"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+    </Grid>
+</UserControl>

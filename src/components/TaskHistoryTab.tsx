@@ -298,7 +298,7 @@ export const TaskHistoryTab: React.FC = () => {
         return (
           <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold flex items-center gap-1">
             <Zap className="w-3 h-3 text-cyan-400" />
-            Bán Content / No-Strike
+            Shield / Timeline
           </span>
         );
       case "voice-synth":
@@ -524,7 +524,7 @@ export const TaskHistoryTab: React.FC = () => {
               { id: "highlight", label: "Highlight AI" },
               { id: "translate", label: "Dịch & Lồng Tiếng" },
               { id: "comic-render", label: "Truyện Tranh AI" },
-              { id: "video-edit", label: "Bán Content" },
+              { id: "video-edit", label: "Shield / Timeline" },
               { id: "voice-synth", label: "Voiceover" },
               { id: "seo-generate", label: "SEO Suite" },
               { id: "download", label: "Downloader" },

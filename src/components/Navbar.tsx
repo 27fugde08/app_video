@@ -195,23 +195,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           );
         })}
 
-        {/* C# WPF Studio Navigation Button */}
-        <button
-          id="btn-nav-csharp-wpf"
-          onClick={() => {
-            soundSynth.playSfx("pop");
-            onSelectTab("csharp-wpf");
-          }}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all cursor-pointer ${
-            activeTab === "csharp-wpf"
-              ? "bg-blue-500/20 text-blue-300 border-blue-500/40 shadow-sm"
-              : "bg-white/5 hover:bg-white/10 text-slate-300 border-white/10"
-          }`}
-          title="Kiến trúc & mã nguồn C# .NET 9 WPF"
-        >
-          <Code2 className="w-3.5 h-3.5 text-blue-400" />
-          <span className="hidden xl:inline">C# WPF Studio</span>
-        </button>
+
 
         {/* Global Task Queue Status Quick Badge */}
         <button

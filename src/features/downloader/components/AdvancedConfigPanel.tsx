@@ -11,7 +11,14 @@ import {
   FileText,
   Zap,
   HelpCircle,
-  Check
+  Check,
+  Cpu,
+  Gauge,
+  Tag,
+  Image as ImageIcon,
+  Shield,
+  Layers,
+  Sparkles
 } from "lucide-react";
 import { DownloaderConfig } from "../types";
 import { soundSynth } from "../../../utils/audioUtils";
@@ -41,6 +48,14 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
     setIsFolderPickerOpen(true);
   };
 
+  const insertNamingTag = (tag: string) => {
+    soundSynth.playSfx("pop");
+    setConfig((prev) => ({
+      ...prev,
+      namingPattern: prev.namingPattern ? `${prev.namingPattern}_${tag}` : tag
+    }));
+  };
+
   return (
     <div className="obsidian-card rounded-2xl border border-white/[0.08] overflow-hidden transition-all shadow-2xl">
       {/* Header Toggle */}
@@ -54,17 +69,17 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
           </div>
           <div>
             <span className="text-xs sm:text-sm font-bold text-white tracking-wide">
-              Cấu hình nâng cao & Tăng tốc tải
+              Cấu hình Tăng tốc Tải & Đa phân đoạn (Multi-Segment Turbo)
             </span>
             <span className="text-[11px] text-slate-400 ml-2 hidden sm:inline">
-              (Cookie, Proxy, Tách MP3, Tăng tốc NVENC, Thư mục lưu)
+              ({config.chunksPerFile || 8} Chunks/file • {config.speedLimitMbps ? `${config.speedLimitMbps}MB/s Limit` : "Không giới hạn"} • {config.removeWatermark ? "No-WM" : ""})
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/25">
-            {config.removeWatermark ? "Clean-WM" : "Original"} • {config.extractMp3 ? "+MP3" : ""}
+            {config.chunksPerFile || 8} Chunks • {config.removeWatermark ? "Clean-WM" : "Original"} • {config.extractMp3 ? "+MP3" : ""}
           </span>
           {isOpen ? (
             <ChevronUp className="w-4 h-4 text-slate-400" />
@@ -77,12 +92,13 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
       {/* Collapsible Content */}
       {isOpen && (
         <div className="p-4 sm:p-5 border-t border-white/[0.06] space-y-4 text-xs animate-in fade-in duration-200">
+          {/* TOP ROW: Storage Directory & Turbo Multi-Segment Engine */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Field 1: Thư mục lưu */}
             <div className="space-y-1.5 md:col-span-2">
               <label className="font-semibold text-slate-300 flex items-center gap-1.5">
                 <Folder className="w-3.5 h-3.5 text-amber-400" />
-                <span>Thư mục lưu trữ video & audio:</span>
+                <span>Thư mục lưu trữ video & audio Vault:</span>
               </label>
               <div className="flex items-center gap-2">
                 <input
@@ -100,30 +116,155 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
               </div>
             </div>
 
-            {/* Field 2: Cookie Authentication Bypass */}
+            {/* Field 2: Multi-Segment Chunks Per File */}
+            <div className="space-y-1.5 bg-[#05070d]/60 border border-white/[0.07] p-3 rounded-xl">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Số phân đoạn tải song song / video:</span>
+                </label>
+                <span className="text-[11px] font-mono text-cyan-300 font-bold">
+                  {config.chunksPerFile || 8} chunks (HTTP Range)
+                </span>
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {[
+                  { label: "1x Đơn luồng", val: 1 },
+                  { label: "4x Tiêu chuẩn", val: 4 },
+                  { label: "8x Turbo", val: 8 },
+                  { label: "16x Cực hạn", val: 16 }
+                ].map((opt) => (
+                  <button
+                    key={opt.val}
+                    type="button"
+                    onClick={() => {
+                      soundSynth.playSfx("pop");
+                      setConfig((prev) => ({ ...prev, chunksPerFile: opt.val }));
+                    }}
+                    className={`py-1.5 px-2 rounded-lg text-[11px] font-semibold text-center border transition-all cursor-pointer ${
+                      (config.chunksPerFile || 8) === opt.val
+                        ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                        : "bg-white/[0.02] text-slate-400 hover:text-slate-200 border-white/[0.06]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Field 3: Speed Limiter (Bandwidth Governor) */}
+            <div className="space-y-1.5 bg-[#05070d]/60 border border-white/[0.07] p-3 rounded-xl">
+              <div className="flex items-center justify-between">
+                <label className="font-bold text-slate-200 flex items-center gap-1.5">
+                  <Gauge className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Giới hạn băng thông (Speed Governor):</span>
+                </label>
+                <span className="text-[11px] font-mono text-emerald-300 font-bold">
+                  {config.speedLimitMbps ? `${config.speedLimitMbps} MB/s` : "Cực đại (Unlimited)"}
+                </span>
+              </div>
+              <div className="grid grid-cols-5 gap-1.5 pt-1">
+                {[
+                  { label: "Tối đa", val: 0 },
+                  { label: "50 MB/s", val: 50 },
+                  { label: "25 MB/s", val: 25 },
+                  { label: "10 MB/s", val: 10 },
+                  { label: "5 MB/s", val: 5 }
+                ].map((opt) => (
+                  <button
+                    key={opt.val}
+                    type="button"
+                    onClick={() => {
+                      soundSynth.playSfx("pop");
+                      setConfig((prev) => ({ ...prev, speedLimitMbps: opt.val }));
+                    }}
+                    className={`py-1.5 px-1.5 rounded-lg text-[10px] font-semibold text-center border transition-all cursor-pointer ${
+                      (config.speedLimitMbps || 0) === opt.val
+                        ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm"
+                        : "bg-white/[0.02] text-slate-400 hover:text-slate-200 border-white/[0.06]"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* MIDDLE ROW: Smart Naming Rule Builder */}
+          <div className="space-y-2 bg-[#05070d]/70 border border-white/[0.07] p-3.5 rounded-xl">
+            <div className="flex items-center justify-between">
+              <label className="font-bold text-slate-200 flex items-center gap-1.5">
+                <Tag className="w-3.5 h-3.5 text-violet-400" />
+                <span>Quy tắc đặt tên tệp tự động (Smart Batch Naming Pattern):</span>
+              </label>
+              <span className="text-[10px] text-slate-400">Click tag để chèn vào mẫu</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={config.namingPattern || "{index}_{title}_{platform}"}
+                onChange={(e) => setConfig((prev) => ({ ...prev, namingPattern: e.target.value }))}
+                placeholder="{index}_{title}_{platform}"
+                className="flex-1 bg-[#07090f] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-cyan-300 focus:border-violet-500/50 outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => setConfig((prev) => ({ ...prev, namingPattern: "{index}_{title}_{platform}" }))}
+                className="px-2.5 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-slate-300 text-[11px] font-semibold border border-white/10 cursor-pointer"
+              >
+                Mặc định
+              </button>
+            </div>
+            <div className="flex flex-wrap items-center gap-1.5 pt-1">
+              {[
+                { tag: "{index}", desc: "01, 02..." },
+                { tag: "{title}", desc: "Tiêu đề video" },
+                { tag: "{platform}", desc: "tiktok, douyin..." },
+                { tag: "{author}", desc: "Kênh tác giả" },
+                { tag: "{resolution}", desc: "1080p, 4k" },
+                { tag: "{date}", desc: "YYYY-MM-DD" }
+              ].map((item) => (
+                <button
+                  key={item.tag}
+                  type="button"
+                  onClick={() => insertNamingTag(item.tag)}
+                  className="px-2 py-0.5 rounded-md bg-violet-500/10 hover:bg-violet-500/25 text-violet-300 border border-violet-500/30 text-[10px] font-mono cursor-pointer transition-colors"
+                  title={item.desc}
+                >
+                  +{item.tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Proxy & Cookie Authentication */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Cookie Authentication Bypass */}
             <div className="space-y-1.5">
               <label className="font-semibold text-slate-300 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Key className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Cookie tài khoản (Douyin / TikTok):</span>
+                  <span>Cookie tài khoản VIP (Douyin / TikTok / Bilibili):</span>
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono">Bypass 1080p/2K</span>
+                <span className="text-[10px] text-slate-500 font-mono">Bypass 4K/VIP</span>
               </label>
               <input
                 type="text"
                 value={config.cookieHeader}
                 onChange={(e) => setConfig((prev) => ({ ...prev, cookieHeader: e.target.value }))}
-                placeholder="passport_csrf_token=...; sessionid=..."
+                placeholder="passport_csrf_token=...; sessionid=...; SESSDATA=..."
                 className="w-full bg-[#05070d] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:border-cyan-500/50 outline-none"
               />
             </div>
 
-            {/* Field 3: Proxy Server Routing */}
+            {/* Proxy Server Routing */}
             <div className="space-y-1.5">
               <label className="font-semibold text-slate-300 flex items-center justify-between">
                 <div className="flex items-center gap-1.5">
                   <Globe className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Proxy mạng (HTTP / SOCKS5):</span>
+                  <span>Proxy mạng (HTTP / HTTPS / SOCKS5):</span>
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono">Xoay IP chống chặn</span>
               </label>
@@ -131,7 +272,7 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
                 type="text"
                 value={config.proxyServer}
                 onChange={(e) => setConfig((prev) => ({ ...prev, proxyServer: e.target.value }))}
-                placeholder="http://127.0.0.1:7890"
+                placeholder="http://127.0.0.1:7890 hoặc socks5://user:pass@127.0.0.1:1080"
                 className="w-full bg-[#05070d] border border-white/10 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:border-cyan-500/50 outline-none"
               />
             </div>
@@ -258,6 +399,126 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
                 {config.gpuAcceleration && <Check className="w-3.5 h-3.5" />}
               </div>
             </div>
+
+            {/* Toggle 5: Bỏ qua video đã tồn tại */}
+            <div
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                setConfig((prev) => ({ ...prev, skipExisting: !prev.skipExisting }));
+              }}
+              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                config.skipExisting
+                  ? "bg-gradient-to-r from-blue-500/15 to-indigo-500/15 border-blue-500/40 text-white glow-cyan"
+                  : "bg-white/[0.02] border-white/10 text-slate-400 hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Layers className="w-4 h-4 text-blue-400" />
+                <div>
+                  <div className="font-bold text-xs">Bỏ qua file đã có</div>
+                  <div className="text-[10px] text-slate-400">Không tải trùng lặp</div>
+                </div>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                  config.skipExisting
+                    ? "bg-blue-500 text-white border-blue-400"
+                    : "border-white/20"
+                }`}
+              >
+                {config.skipExisting && <Check className="w-3.5 h-3.5" />}
+              </div>
+            </div>
+
+            {/* Toggle 6: Tải kèm Ảnh Bìa Cover Thumbnail */}
+            <div
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                setConfig((prev) => ({ ...prev, downloadThumbnail: !prev.downloadThumbnail }));
+              }}
+              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                config.downloadThumbnail
+                  ? "bg-gradient-to-r from-amber-500/15 to-yellow-500/15 border-amber-500/40 text-white"
+                  : "bg-white/[0.02] border-white/10 text-slate-400 hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <ImageIcon className="w-4 h-4 text-amber-400" />
+                <div>
+                  <div className="font-bold text-xs">Tải Cover Art HD</div>
+                  <div className="text-[10px] text-slate-400">Lưu ảnh thumbnail gốc</div>
+                </div>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                  config.downloadThumbnail
+                    ? "bg-amber-500 text-white border-amber-400"
+                    : "border-white/20"
+                }`}
+              >
+                {config.downloadThumbnail && <Check className="w-3.5 h-3.5" />}
+              </div>
+            </div>
+
+            {/* Toggle 7: Chống chặn Anti-ban Jitter */}
+            <div
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                setConfig((prev) => ({ ...prev, antiBanJitter: !prev.antiBanJitter }));
+              }}
+              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                config.antiBanJitter
+                  ? "bg-gradient-to-r from-teal-500/15 to-emerald-500/15 border-teal-500/40 text-white"
+                  : "bg-white/[0.02] border-white/10 text-slate-400 hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Shield className="w-4 h-4 text-teal-400" />
+                <div>
+                  <div className="font-bold text-xs">Anti-Ban Jitter</div>
+                  <div className="text-[10px] text-slate-400">Delay ngẫu nhiên lách IP</div>
+                </div>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                  config.antiBanJitter
+                    ? "bg-teal-500 text-white border-teal-400"
+                    : "border-white/20"
+                }`}
+              >
+                {config.antiBanJitter && <Check className="w-3.5 h-3.5" />}
+              </div>
+            </div>
+
+            {/* Toggle 8: Tự động gom nhóm theo tác giả */}
+            <div
+              onClick={() => {
+                soundSynth.playSfx("pop");
+                setConfig((prev) => ({ ...prev, autoOrganizeByAuthor: !prev.autoOrganizeByAuthor }));
+              }}
+              className={`p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between shadow-sm ${
+                config.autoOrganizeByAuthor
+                  ? "bg-gradient-to-r from-indigo-500/15 to-violet-500/15 border-indigo-500/40 text-white"
+                  : "bg-white/[0.02] border-white/10 text-slate-400 hover:bg-white/[0.04]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <Folder className="w-4 h-4 text-indigo-400" />
+                <div>
+                  <div className="font-bold text-xs">Gom Thư Mục Kênh</div>
+                  <div className="text-[10px] text-slate-400">Tạo folder riêng từng tác giả</div>
+                </div>
+              </div>
+              <div
+                className={`w-5 h-5 rounded-md flex items-center justify-center border ${
+                  config.autoOrganizeByAuthor
+                    ? "bg-indigo-500 text-white border-indigo-400"
+                    : "border-white/20"
+                }`}
+              >
+                {config.autoOrganizeByAuthor && <Check className="w-3.5 h-3.5" />}
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -275,3 +536,4 @@ export const AdvancedConfigPanel: React.FC<AdvancedConfigPanelProps> = ({
     </div>
   );
 };
+
