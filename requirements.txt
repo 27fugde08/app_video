@@ -1,0 +1,22 @@
+# CreatorOS Desktop - System Requirements & Dependencies
+
+## 1. Operating System & Runtime Environment
+- **Operating System:** Windows 10 / 11 (64-bit) with hardware GPU acceleration enabled.
+- **Runtime Framework:** .NET 9.0 SDK (`net9.0-windows`) or higher.
+- **UI Framework:** Windows Presentation Foundation (WPF) with CommunityToolkit.Mvvm.
+
+## 2. Hardware Specifications (Recommended Workstation)
+- **GPU:** NVIDIA GeForce GTX 1660 Super (6GB VRAM) or higher (CUDA 12.x / TensorRT compatible).
+- **RAM:** 16GB DDR4/DDR5 minimum (32GB recommended for large batch rendering).
+- **Storage:** NVMe SSD with at least 5GB free space for temporary cache and RVC model storage.
+
+## 3. External CLI & Binary Dependencies (Auto-managed or placed in `tools/`)
+- **FFmpeg:** Compiled with NVENC support (`h264_nvenc`, `hevc_nvenc`) and libass filter.
+- **yt-dlp:** High-performance media downloader engine.
+- **RVC CLI Engine & ONNX Runtime GPU:** For Local Adam Voice Conversion (FP16).
+
+## 4. NuGet Package Dependencies (.NET 9)
+- `CommunityToolkit.Mvvm` (v8.3+)
+- `Microsoft.Extensions.DependencyInjection` (v9.0+)
+- `System.Threading.Channels` (v9.0+)
+- `NAudio` (for audio buffer processing)

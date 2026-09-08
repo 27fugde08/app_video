@@ -94,7 +94,7 @@ export default function App() {
               onOpenGpu={() => setIsGpuModalOpen(true)}
             />
 
-            <main className="flex-1 flex flex-col min-h-0 overflow-hidden relative">
+            <main className="flex-1 flex flex-col min-h-0 overflow-y-auto relative p-4">
               <Suspense fallback={<SkeletonFallback />}>
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -103,7 +103,7 @@ export default function App() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -4 }}
                     transition={{ duration: 0.15 }}
-                    className="flex-1 flex flex-col min-h-0 h-full w-full"
+                    className="flex-1 flex flex-col min-h-full w-full"
                   >
                     {renderActiveTool()}
                   </motion.div>
