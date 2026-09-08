@@ -8,6 +8,7 @@ using System;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;

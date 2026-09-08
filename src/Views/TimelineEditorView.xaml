@@ -60,7 +60,7 @@
                 </Grid.ColumnDefinitions>
                 <TextBlock Grid.Column="0" Text="{Binding ExportStatusMessage}" Foreground="#94A3B8" FontSize="12" VerticalAlignment="Center"/>
                 <ProgressBar Grid.Column="1" Value="{Binding ExportProgress}" Maximum="100" Width="180" Height="8" Background="#334155" Foreground="#10B981" BorderThickness="0"
-                             Visibility="{Binding IsExporting, Converter={x:Static BooleanToVisibilityConverter.Instance}, FallbackValue=Collapsed}"/>
+                             Visibility="{Binding IsExporting, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
             </Grid>
         </Border>
     </Grid>

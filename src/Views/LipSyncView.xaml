@@ -132,7 +132,7 @@
                     <!-- Batch Size (VRAM Governor) -->
                     <TextBlock Text="Kích thước Batch GPU (CUDA):" Foreground="#94A3B8" FontSize="11" Margin="0,0,0,4"/>
                     <ComboBox SelectedValue="{Binding BatchSize}" Background="#0F172A" Foreground="#F8FAFC" BorderBrush="#475569" Padding="6,4" FontSize="11" Margin="0,0,0,14">
-                        <ComboBoxItem Content="8 Khung hình / Lượt (< 4GB VRAM)" Tag="8"/>
+                        <ComboBoxItem Content="8 Khung hình / Lượt (&lt; 4GB VRAM)" Tag="8"/>
                         <ComboBoxItem Content="16 Khung hình / Lượt (Chuẩn RTX)" Tag="16" IsSelected="True"/>
                         <ComboBoxItem Content="32 Khung hình / Lượt (Tối Đa Công Suất)" Tag="32"/>
                     </ComboBox>
@@ -160,7 +160,7 @@
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#F8FAFC" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
                     <ProgressBar Value="{Binding ProcessingProgress}" Maximum="100" Height="6" Width="380" HorizontalAlignment="Left"
                                  Background="#334155" Foreground="#10B981" BorderThickness="0"
-                                 Visibility="{Binding IsProcessing, Converter={x:Static BooleanToVisibilityConverter.Instance}, FallbackValue=Collapsed}"/>
+                                 Visibility="{Binding IsProcessing, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
                 </StackPanel>
 
                 <Button Grid.Column="1" Content="🚀 Khớp Khẩu Hình &amp; Xuất Video NVENC" Background="#10B981" Foreground="#FFFFFF" FontWeight="Bold"

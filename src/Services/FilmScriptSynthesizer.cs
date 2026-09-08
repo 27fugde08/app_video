@@ -81,10 +81,10 @@ public sealed class FilmScriptSynthesizer
 
         try
         {
-            string systemPrompt = $"""
+            string systemPrompt = $$"""
             Bạn là một nhà phê bình và biên kịch tóm tắt phim (Film Reviewer/Recap) hàng đầu với hàng triệu lượt xem.
-            Nhiệm vụ: Viết kịch bản tóm tắt phân đoạn cho bộ phim '{movieTitle}' với phong cách '{targetTone}'.
-            Tổng số cảnh quay trích xuất được từ phim là {totalScenesCount}.
+            Nhiệm vụ: Viết kịch bản tóm tắt phân đoạn cho bộ phim '{{movieTitle}}' với phong cách '{{targetTone}}'.
+            Tổng số cảnh quay trích xuất được từ phim là {{totalScenesCount}}.
 
             CẤU TRÚC 5 HỒI BẮT BUỘC:
             1. Hook (Mở đầu 5s): Nêu ngay nghịch lý/tình thế ngặt nghèo của nhân vật chính.
@@ -94,19 +94,19 @@ public sealed class FilmScriptSynthesizer
             5. Resolution & Rating: Đánh giá tổng thể, chấm điểm và kêu gọi thảo luận.
 
             TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON HỢP LỆ VỚI CẤU TRÚC:
-            {{
-              "movie_title": "{movieTitle}",
+            {
+              "movie_title": "{{movieTitle}}",
               "target_duration_minutes": 3.0,
               "sentences": [
-                {{
+                {
                   "sentence": "Nội dung câu nói voiceover",
                   "suggested_scene_tag": "Action / Mystery / Dialogue / Climax",
                   "emotion": "Tense / Humorous / Serious / Shock",
                   "assigned_scene_index": 1,
                   "estimated_duration_sec": 4.5
-                }}
+                }
               ]
-            }}
+            }
             """;
 
             var reqBody = new

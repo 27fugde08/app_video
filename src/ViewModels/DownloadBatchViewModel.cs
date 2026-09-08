@@ -69,6 +69,11 @@ public sealed partial class DownloadBatchViewModel : ObservableObject, IAsyncDis
     [ObservableProperty]
     private string _statusMessage = "Nhập URL kênh Douyin, TikTok hoặc Playlist YouTube để bắt đầu.";
 
+    public DownloadBatchViewModel()
+        : this(new ChannelBatchScanner(), new AssetBundleDownloader(), new InMemoryJobQueue())
+    {
+    }
+
     public DownloadBatchViewModel(
         ChannelBatchScanner scanner,
         AssetBundleDownloader downloader,

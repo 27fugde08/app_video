@@ -55,6 +55,17 @@ public sealed class NativeSignatureResolver : IDisposable
     public int ActiveEnginesCount => Volatile.Read(ref _currentPoolCount);
     public int AvailableEnginesInPool => _enginePool.Count;
 
+    private static readonly Lazy<NativeSignatureResolver> _sharedInstance = new(() => new NativeSignatureResolver());
+    public static NativeSignatureResolver Shared => _sharedInstance.Value;
+
+    public static Task<SignedSignatureResult> SignUrlAsync(
+        string originalUrl,
+        string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+        CancellationToken cancellationToken = default)
+    {
+        return Shared.SignUrlDirectAsync(originalUrl, userAgent, cancellationToken);
+    }
+
     public NativeSignatureResolver(int maxPoolSize = 8, HttpClient? httpClient = null)
     {
         _maxPoolSize = Math.Max(1, maxPoolSize);
@@ -80,7 +91,7 @@ public sealed class NativeSignatureResolver : IDisposable
     /// <summary>
     /// Sinh chữ ký a_bogus và msToken từ URL, Query params và User-Agent (< 5ms).
     /// </summary>
-    public async Task<SignedSignatureResult> SignUrlAsync(
+    public async Task<SignedSignatureResult> SignUrlDirectAsync(
         string targetUrl,
         string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
         CancellationToken ct = default)
@@ -166,7 +177,7 @@ public sealed class NativeSignatureResolver : IDisposable
         string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36";
 
         // 1. Ký URL với ClearScript V8 Engine
-        var signResult = await SignUrlAsync(rawApiUrl, userAgent, ct).ConfigureAwait(false);
+        var signResult = await SignUrlDirectAsync(rawApiUrl, userAgent, ct).ConfigureAwait(false);
         if (!signResult.Success)
         {
             throw new InvalidOperationException($"Không thể tạo chữ ký a_bogus: {signResult.ErrorMessage}");
@@ -228,15 +239,8 @@ public sealed class NativeSignatureResolver : IDisposable
     /// </summary>
     private V8ScriptEngine CreateConfiguredEngine()
     {
-        // Giới hạn V8 Heap Memory tối đa 64MB: 16MB Young Gen + 48MB Old Gen
-        var constraints = new V8RuntimeConstraints
-        {
-            MaxYoungGenerationSizeInBytes = YoungGenBytes,
-            MaxOldGenerationSizeInBytes = OldGenBytes
-        };
-
         var flags = V8ScriptEngineFlags.DisableGlobalMembers | V8ScriptEngineFlags.EnableTaskPromiseConversion;
-        var engine = new V8ScriptEngine(flags, constraints);
+        var engine = new V8ScriptEngine(flags);
 
         // Nạp và biên dịch mã giải mã JS
         engine.Execute(_decryptionScriptSource);

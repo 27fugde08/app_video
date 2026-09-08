@@ -79,6 +79,11 @@ public sealed partial class JobQueueViewModel : ObservableObject,
     [ObservableProperty]
     private string _queueStatusText = "Hàng đợi sẵn sàng (60 FPS Native Engine)";
 
+    public JobQueueViewModel()
+        : this(new InMemoryJobQueue())
+    {
+    }
+
     public JobQueueViewModel(IInMemoryJobQueue jobQueue)
     {
         _jobQueue = jobQueue;

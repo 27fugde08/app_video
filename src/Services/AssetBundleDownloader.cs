@@ -161,14 +161,28 @@ public sealed class AssetBundleDownloader : IDisposable
     }
 
     /// <summary>
+    /// Phương thức tĩnh đóng gói toàn bộ 5 tài nguyên con của video.
+    /// </summary>
+    public static async Task<AssetBundleResult> DownloadBundleAsync(
+        VideoMetadataModel metadata,
+        string baseOutputDirectory,
+        string templatePattern = "{Author}/{Date} - {Title}",
+        IProgress<AssetBundleProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var downloader = new AssetBundleDownloader();
+        return await downloader.DownloadBundleAsync(metadata, baseOutputDirectory, progress, cancellationToken, templatePattern);
+    }
+
+    /// <summary>
     /// Tải song song toàn bộ 5 tài nguyên con của video vào thư mục đầu ra chuẩn hóa.
     /// </summary>
     public async Task<AssetBundleResult> DownloadBundleAsync(
         VideoMetadataModel metadata,
         string baseOutputFolder,
-        string templatePattern = "{Author}/{Date} - {Title}",
         IProgress<AssetBundleProgress>? progress = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string templatePattern = "{Author}/{Date} - {Title}")
     {
         ThrowIfDisposed();
         var sw = Stopwatch.StartNew();

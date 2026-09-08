@@ -18,12 +18,6 @@ public partial class MainWindow : Window
         DataContext = viewModel;
     }
 
-    public MainWindow(MainViewModel viewModel)
-    {
-        InitializeComponent();
-        DataContext = viewModel;
-    }
-
     protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
     {
         base.OnMouseLeftButtonDown(e);

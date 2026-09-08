@@ -545,7 +545,7 @@ public sealed partial class BatchDownloadViewModel : ObservableObject, IDisposab
         }
 
         TotalQueuedCount = DownloadQueue.Count;
-        UrlBatchInput = string.Join(Environment.NewLine, sampleUrls.Select(x => x.url));
+        UrlBatchInput = string.Join(Environment.NewLine, sampleUrls.Select(x => x.Item1));
     }
 
     [RelayCommand]

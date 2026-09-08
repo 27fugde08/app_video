@@ -410,7 +410,7 @@ Respond with ONLY valid JSON:
             // Parse error fallback
         }
 
-        return GenerateFallbackTranslation(request: req);
+        return GenerateFallbackTranslation(req);
     }
 
     private static IReadOnlyList<DirectedDubbingLine> GenerateFallbackTranslation(MultiSpeakerDubbingRequest req)

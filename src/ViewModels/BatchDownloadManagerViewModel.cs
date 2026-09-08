@@ -63,6 +63,35 @@ public sealed class DownloadItemViewModel : INotifyPropertyChanged, IDisposable
         set => SetField(ref _progressPercent, value);
     }
 
+    public double Progress
+    {
+        get => _progressPercent;
+        set => SetField(ref _progressPercent, value);
+    }
+
+    public string StatusText
+    {
+        get => Status.ToString();
+        set { }
+    }
+
+    public string Speed
+    {
+        get => $"{_speedMegaBytesPerSec:F1} MB/s";
+        set { }
+    }
+
+    public DownloadItemViewModel() { }
+
+    public DownloadItemViewModel(ScannedVideoItem video)
+    {
+        VideoId = video.VideoId;
+        Title = video.Title;
+        DirectUrl = video.DirectDownloadUrlNoWatermark;
+        TotalBytesAtomic = video.EstimatedSizeBytes;
+        Status = DownloadItemStatus.Queued;
+    }
+
     public double SpeedMegaBytesPerSec
     {
         get => _speedMegaBytesPerSec;

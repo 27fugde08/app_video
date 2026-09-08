@@ -37,7 +37,7 @@ public interface IInMemoryJobQueue : IAsyncDisposable, IDisposable
 ///    - Gửi RenderTaskStatusChangedMessage và RenderTaskProgressMessage qua WeakReferenceMessenger.
 ///    - Quản lý tài nguyên unmanaged và hủy tác vụ deterministic qua CancellationTokenSource per task.
 /// </summary>
-public sealed class InMemoryJobQueue : IInMemoryJobQueue
+public sealed class InMemoryJobQueue : IInMemoryJobQueue, IJobQueue
 {
     private readonly Channel<RenderJobTask> _channel;
     private readonly SemaphoreSlim _hardwareThrottleSemaphore;

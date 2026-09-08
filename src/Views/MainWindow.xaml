@@ -232,7 +232,7 @@
                                        Foreground="{StaticResource TextMutedBrush}" 
                                        VerticalAlignment="Center" 
                                        Margin="6,0,0,0"
-                                       Visibility="{Binding IsSidebarCollapsed, Converter={x:Static ObjectConverters.Null}}"/>
+                                       Visibility="{Binding IsSidebarCollapsed, Converter={StaticResource InverseBooleanToVisibilityConverter}}"/>
                             
                             <Button HorizontalAlignment="Right" 
                                     Command="{Binding ToggleSidebarCommand}"
@@ -451,7 +451,7 @@
         <!-- ========================================================================= -->
         <Grid Grid.Row="0" Grid.RowSpan="3" 
               Background="{StaticResource BackdropOverlayBrush}" 
-              Visibility="{Binding IsSpotlightOpen, Converter={x:Static ObjectConverters.Null}}"
+              Visibility="{Binding IsSpotlightOpen, Converter={StaticResource BooleanToVisibilityConverter}}"
               Panel.ZIndex="1000">
             <Grid.InputBindings>
                 <MouseBinding MouseAction="LeftClick" Command="{Binding CloseSpotlightCommand}"/>

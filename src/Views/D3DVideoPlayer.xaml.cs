@@ -184,9 +184,6 @@ public partial class D3DVideoPlayer : UserControl, IDisposable
     {
         if (_d3dImage != null)
         {
-            if (_d3dImage.IsLocked)
-                _d3dImage.Unlock();
-
             _d3dImage.Lock();
             _d3dImage.SetBackBuffer(D3DResourceType.IDirect3DSurface9, IntPtr.Zero);
             _d3dImage.Unlock();

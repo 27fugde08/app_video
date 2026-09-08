@@ -72,6 +72,20 @@ public static class AppPaths
     }
 
     /// <summary>
+    /// Lấy đường dẫn tệp thực thi native hoặc fallback tên công cụ trên PATH.
+    /// </summary>
+    public static string GetNativeToolPath(string toolName)
+    {
+        var localPath = Path.Combine(ToolsDirectory, toolName);
+        if (File.Exists(localPath)) return localPath;
+
+        var nativeRuntimePath = Path.Combine(AppContext.BaseDirectory, "runtimes", "win-x64", "native", toolName);
+        if (File.Exists(nativeRuntimePath)) return nativeRuntimePath;
+
+        return toolName;
+    }
+
+    /// <summary>
     /// Đảm bảo thư mục tồn tại trên ổ đĩa nếu chưa có.
     /// </summary>
     public static string EnsureDirectoryExists(string path)

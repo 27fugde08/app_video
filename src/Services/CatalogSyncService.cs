@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.Messaging;
 using CommunityToolkit.Mvvm.Messaging.Messages;
+using CreatorOS.Core.Contracts;
 using CreatorOS.Core.Models;
 
 namespace CreatorOS.Core.Services;

@@ -52,10 +52,6 @@ public sealed class SubtitleMaskDetector : IDisposable
     private readonly Lock _syncLock = new();
     private bool _isDisposed;
 
-    // Buffer tái sử dụng để tránh GC pressure
-    private byte[]? _maskBuffer;
-    private byte[]? _dilationTemp;
-
     public SubtitleMaskDetector(SubtitleDetectionOptions? options = null)
     {
         _options = options ?? new SubtitleDetectionOptions();
@@ -246,8 +242,6 @@ public sealed class SubtitleMaskDetector : IDisposable
         {
             if (_isDisposed) return;
             _isDisposed = true;
-            _maskBuffer = null;
-            _dilationTemp = null;
             GC.SuppressFinalize(this);
         }
     }

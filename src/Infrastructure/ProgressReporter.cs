@@ -178,7 +178,7 @@ public sealed class ProgressReporter : IAsyncDisposable, IDisposable
             while (await timer.WaitForNextTickAsync(_cts.Token).ConfigureAwait(false))
             {
                 bool hasUpdate = false;
-                RenderProgress latest = default;
+                RenderProgress? latest = null;
 
                 // Drain all accumulated items in this 100ms window (Coalescing)
                 while (reader.TryRead(out var item))
@@ -187,7 +187,7 @@ public sealed class ProgressReporter : IAsyncDisposable, IDisposable
                     hasUpdate = true;
                 }
 
-                if (hasUpdate)
+                if (hasUpdate && latest != null)
                 {
                     Interlocked.Increment(ref _totalDispatchesToUi);
                     // Single dispatch call to UI Thread
@@ -262,7 +262,7 @@ public sealed class ProgressReporter : IAsyncDisposable, IDisposable
         await log.WriteLineAsync("================================================================================\n");
 
         int uiDispatchesReceived = 0;
-        RenderProgress lastReceivedProgress = default;
+        RenderProgress? lastReceivedProgress = null;
 
         // Simulated Dispatcher callback (measures time spent in UI delegate)
         var uiDispatcherMock = (RenderProgress p) =>
@@ -309,7 +309,7 @@ public sealed class ProgressReporter : IAsyncDisposable, IDisposable
         await log.WriteLineAsync($"• Tổng số Logs gửi từ FFmpeg Stderr: {reporter.TotalLogsIngested:N0} logs");
         await log.WriteLineAsync($"• Số lần UI Dispatcher bị ngắt quãng : {uiDispatchesReceived} lần (kỳ vọng ~10 lần)");
         await log.WriteLineAsync($"• Tỷ lệ giảm tải Dispatcher        : {reporter.DispatchReductionPercentage:F1}%");
-        await log.WriteLineAsync($"• Tiến độ ghi nhận cuối cùng        : {lastReceivedProgress.Percentage:F1}% (Frame #{lastReceivedProgress.Frame}, FPS: {lastReceivedProgress.Fps})");
+        await log.WriteLineAsync($"• Tiến độ ghi nhận cuối cùng        : {lastReceivedProgress?.Percentage ?? 0:F1}% (Frame #{lastReceivedProgress?.Frame ?? 0}, FPS: {lastReceivedProgress?.Fps ?? 0})");
         await log.WriteLineAsync($"• Trạng thái UI Thread              : 100% Responsive, CPU < 1.5%, Zero UI Starvation");
         await log.WriteLineAsync("================================================================================\n");
     }

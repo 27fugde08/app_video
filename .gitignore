@@ -1,4 +1,10 @@
 node_modules/
+**/bin/
+**/obj/
+bin/
+obj/
+src/bin/
+src/obj/
 build/
 dist/
 coverage/

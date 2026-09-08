@@ -345,7 +345,7 @@ public sealed partial class DubbingViewModel : ObservableObject, IDisposable
         DubbingProgressBridge? progressBridge = null)
     {
         _hardwareGovernor = hardwareGovernor ?? new HardwareGovernor();
-        _orchestrator = orchestrator ?? new PipelineConveyorOrchestrator(hardwareGovernor: _hardwareGovernor);
+        _orchestrator = orchestrator ?? new PipelineConveyorOrchestrator();
         _progressBridge = progressBridge ?? new DubbingProgressBridge(_hardwareGovernor);
 
         // 1. Đăng ký sự kiện từ Orchestrator đẩy sang Progress Bridge
@@ -1150,7 +1150,7 @@ public sealed partial class DubbingViewModel : ObservableObject, IDisposable
             // 4. Thêm tác vụ Render 9:16 vào hàng đợi NVENC
             var videoTitle = SelectedJob?.Title ?? "Video_Shorts_Clip.mp4";
             var shortsJobId = Guid.NewGuid();
-            var shortsJob = new VideoJobItem
+            var shortsJob = new DubbingJobItem
             {
                 JobId = shortsJobId,
                 Title = $"[Shorts 9:16 Viral Hook] {Path.GetFileNameWithoutExtension(videoTitle)}",

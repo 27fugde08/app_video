@@ -78,8 +78,8 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
 
     private void InitializeDemoTimeline()
     {
-        _project.ProjectName = "AI Auto-Dubbing & Highlight Cut";
-        _project.MainVideoTrack.Clips.Add(new TimelineClip
+        Project.ProjectName = "AI Auto-Dubbing & Highlight Cut";
+        Project.MainVideoTrack.Clips.Add(new TimelineClip
         {
             Name = "Opening Scene (4K)",
             SourceFilePath = "C:\\Videos\\Sample_Clip1.mp4",
@@ -88,7 +88,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
             TimelineStartSeconds = 0.0,
             SpeedRate = 1.0
         });
-        _project.MainVideoTrack.Clips.Add(new TimelineClip
+        Project.MainVideoTrack.Clips.Add(new TimelineClip
         {
             Name = "Highlight Climax (60 FPS)",
             SourceFilePath = "C:\\Videos\\Sample_Clip2.mp4",
@@ -98,7 +98,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
             SpeedRate = 1.2
         });
 
-        _project.VoiceTrack.Clips.Add(new TimelineClip
+        Project.VoiceTrack.Clips.Add(new TimelineClip
         {
             Name = "Vietnamese AI Voiceover",
             SourceFilePath = "C:\\Videos\\Voice_TTS.wav",
@@ -108,7 +108,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
             Volume = 1.5
         });
 
-        _project.MusicTrack.Clips.Add(new TimelineClip
+        Project.MusicTrack.Clips.Add(new TimelineClip
         {
             Name = "Background Lo-Fi Beat",
             SourceFilePath = "C:\\Videos\\BGM.mp3",
@@ -118,9 +118,9 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
             Volume = 0.35
         });
 
-        if (_project.MainVideoTrack.Clips.Count > 0)
+        if (Project.MainVideoTrack.Clips.Count > 0)
         {
-            ActivePreviewSource = _project.MainVideoTrack.Clips[0].SourceFilePath;
+            ActivePreviewSource = Project.MainVideoTrack.Clips[0].SourceFilePath;
         }
     }
 
@@ -143,7 +143,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
     public void SplitClipAtPlayhead()
     {
         double pos = CurrentPositionSeconds;
-        foreach (var clip in _project.MainVideoTrack.Clips)
+        foreach (var clip in Project.MainVideoTrack.Clips)
         {
             if (pos > clip.TimelineStartSeconds && pos < clip.TimelineEndSeconds)
             {
@@ -163,7 +163,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
                 };
 
                 clip.SourceOutSeconds = splitSourceSec;
-                _project.MainVideoTrack.Clips.Add(rightClip);
+                Project.MainVideoTrack.Clips.Add(rightClip);
                 OnPropertyChanged(nameof(Project));
                 break;
             }
@@ -193,7 +193,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
                 ExportStatusMessage = $"Đang xuất video: {p:F0}%";
             });
 
-            bool success = await _compiler.ExportProjectAsync(_project, outPath, progress);
+            bool success = await _compiler.ExportProjectAsync(Project, outPath, progress);
             ExportStatusMessage = success ? $"Xuất thành công: {Path.GetFileName(outPath)}" : "Xuất thất bại.";
         }
         catch (Exception ex)
@@ -208,7 +208,7 @@ public sealed partial class TimelineEditorViewModel : ObservableObject, IDisposa
 
     private void OnPlaybackTick(object? sender, EventArgs e)
     {
-        double totalDuration = _project.GetTotalDurationSeconds();
+        double totalDuration = Project.GetTotalDurationSeconds();
         CurrentPositionSeconds += 0.033;
 
         if (CurrentPositionSeconds >= totalDuration)

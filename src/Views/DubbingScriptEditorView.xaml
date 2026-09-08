@@ -338,7 +338,7 @@
                                                 CommandParameter="{Binding}"
                                                 Background="#059669" Foreground="#FFFFFF" BorderThickness="0"
                                                 Padding="8,5" Margin="0,0,6,0" Cursor="Hand"
-                                                ToolTip="Tối ưu lại 1 câu duy nhất khớp chính xác số từ mục tiêu bằng Gemini Re-Fit (< 350ms)">
+                                                ToolTip="Tối ưu lại 1 câu duy nhất khớp chính xác số từ mục tiêu bằng Gemini Re-Fit (&lt; 350ms)">
                                             <StackPanel Orientation="Horizontal">
                                                 <TextBlock Text="⚡" Margin="0,0,3,0"/>
                                                 <TextBlock Text="Tối ưu lại" FontWeight="SemiBold" FontSize="11"/>

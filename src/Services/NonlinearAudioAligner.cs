@@ -349,6 +349,68 @@ public sealed class NonlinearAudioAligner
     // 3. THỰC THI WSOLA & GHÉP NỐI AUDIO (FFMPEG FILTER COMPLEX)
     // ==============================================================================
 
+    public Task<AlignmentResult> RenderAlignedAudioAsync(
+        string inputAudioPath,
+        string outputAudioPath,
+        double targetDurationSeconds,
+        CancellationToken ct = default)
+        => AlignAudioAsync(inputAudioPath, outputAudioPath, targetDurationSeconds, ct);
+
+    public async Task<AlignmentResult> RenderAlignedAudioAsync(
+        string inputAudioPath,
+        string outputAudioPath,
+        NonlinearAlignmentPlan plan,
+        CancellationToken ct = default)
+    {
+        string filterComplex = BuildAlignmentFilterComplex(plan);
+
+        var psi = new ProcessStartInfo
+        {
+            FileName = _ffmpegBinaryPath,
+            Arguments = string.Format(CultureInfo.InvariantCulture,
+                "-hide_banner -y -i \"{0}\" -filter_complex \"{1}\" -map \"[aout]\" -c:a pcm_s16le -ar 44100 \"{2}\"",
+                inputAudioPath, filterComplex, outputAudioPath),
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            CreateNoWindow = true
+        };
+
+        var errSb = new StringBuilder();
+        using var process = new Process { StartInfo = psi };
+        process.ErrorDataReceived += (_, e) => { if (e.Data != null) errSb.AppendLine(e.Data); };
+
+        process.Start();
+        process.BeginErrorReadLine();
+        await process.WaitForExitAsync(ct).ConfigureAwait(false);
+
+        if (process.ExitCode != 0)
+        {
+            return new AlignmentResult(
+                Success: false,
+                OutputFilePath: outputAudioPath,
+                MeasuredDurationSeconds: 0,
+                ExpectedDurationSeconds: plan.TargetDuration,
+                ToleranceErrorSeconds: -1,
+                Plan: plan,
+                FfmpegFilterComplex: filterComplex,
+                ErrorMessage: errSb.ToString()
+            );
+        }
+
+        double measuredDuration = await GetAudioDurationSecondsAsync(outputAudioPath, ct).ConfigureAwait(false);
+        double diff = Math.Abs(measuredDuration - plan.TargetDuration);
+
+        return new AlignmentResult(
+            Success: diff <= 0.05,
+            OutputFilePath: outputAudioPath,
+            MeasuredDurationSeconds: measuredDuration,
+            ExpectedDurationSeconds: plan.TargetDuration,
+            ToleranceErrorSeconds: diff,
+            Plan: plan,
+            FfmpegFilterComplex: filterComplex
+        );
+    }
+
     /// <summary>
     /// Sinh filter_complex và gọi FFmpeg để render file âm thanh đầu ra khớp targetDuration +- 0.05s.
     /// </summary>

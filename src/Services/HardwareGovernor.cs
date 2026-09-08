@@ -80,6 +80,23 @@ public sealed class HardwareGovernor : IDisposable
     public int ActiveCpuSessions => Volatile.Read(ref _activeCpuCount);
 
     /// <summary>
+    /// Encoder ưu tiên dựa trên phần cứng nhận diện.
+    /// </summary>
+    public EncoderMode PreferredEncoder => EncoderMode.NvidiaNvenc;
+
+    /// <summary>
+    /// Thuê một slot mã hóa phần cứng an toàn.
+    /// </summary>
+    public Task<EncoderLease> AcquireHardwareLeaseAsync(int jobId, CancellationToken ct = default)
+        => AcquireNvencSlotAsync(jobId, ct);
+
+    public Task<EncoderLease> AcquireHardwareLeaseAsync(CancellationToken ct = default)
+        => AcquireNvencSlotAsync(0, ct);
+
+    public bool CanScheduleDualPipeline() => ActiveNvencSessions < 2;
+    public int ActiveNvencCount => ActiveNvencSessions;
+
+    /// <summary>
     /// Number of render jobs waiting in queue for an NVENC slot.
     /// </summary>
     public int WaitingQueueCount => Volatile.Read(ref _waitingQueueCount);

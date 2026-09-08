@@ -1,11 +1,11 @@
-<#
+﻿<#
 .SYNOPSIS
     Script Khởi Động & Build Tự Động Toàn Diện cho CreatorOS PRO_V40
 .DESCRIPTION
-    1. Kiểm tra môi trường .NET 9 SDK, Python và FFmpeg.
+    1. Kiểm tra môi trường .NET, Node.js, Python và FFmpeg.
     2. Tự động khởi tạo Python Virtual Environment (venv) & cài đặt dependencies.
-    3. Build dự án C# .NET 9 WPF.
-    4. Khởi chạy ứng dụng CreatorOS PRO_V40 với các biến môi trường được cấu hình sẵn.
+    3. Đồng bộ hóa các gói phụ thuộc Node.js (Frontend & Backend).
+    4. Khởi chạy toàn bộ hệ thống CreatorOS (Backend Daemon + Frontend / Desktop).
 #>
 
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -49,19 +49,17 @@ Write-Header "CreatorOS PRO_V40 - Automated Build & Launch System"
 # =========================================================================
 Write-Step "Kiểm tra các công cụ môi trường cần thiết..."
 
-# Kiểm tra .NET 9 SDK
+# Kiểm tra Node.js
 try {
-    $dotnetVersion = (dotnet --version) 2>$null
-    if ($dotnetVersion -and $dotnetVersion.StartsWith("9.")) {
-        Write-Success ".NET SDK đã sẵn sàng: $dotnetVersion"
-    } elseif ($dotnetVersion) {
-        Write-Warn "Tìm thấy .NET SDK phiên bản $dotnetVersion (Khuyến nghị .NET 9.0+)."
+    $nodeVersion = (node --version 2>&1)
+    if ($nodeVersion -and $nodeVersion.StartsWith("v")) {
+        Write-Success "Node.js đã sẵn sàng: $nodeVersion"
     } else {
-        throw "Không tìm thấy .NET SDK"
+        throw "Không tìm thấy Node.js"
     }
 } catch {
-    Write-Failure "Lỗi: Không tìm thấy .NET 9 SDK trên máy tính!"
-    Write-Host " -> Vui lòng cài đặt .NET 9 SDK từ: https://dotnet.microsoft.com/download/dotnet/9.0" -ForegroundColor Gray
+    Write-Failure "Lỗi: Không tìm thấy Node.js trên máy tính!"
+    Write-Host " -> Vui lòng cài đặt Node.js LTS từ: https://nodejs.org/" -ForegroundColor Gray
     Read-Host "`nNhấn phím Enter để thoát..."
     exit 1
 }
@@ -80,10 +78,18 @@ try {
         throw "Không tìm thấy Python"
     }
 } catch {
-    Write-Failure "Lỗi: Không tìm thấy Python trên hệ thống!"
-    Write-Host " -> Vui lòng cài đặt Python 3.10+ (và tích chọn 'Add python.exe to PATH'): https://www.python.org/downloads/" -ForegroundColor Gray
-    Read-Host "`nNhấn phím Enter để thoát..."
-    exit 1
+    Write-Warn "Chưa tìm thấy Python trên PATH. Các tính năng AI có thể bị hạn chế."
+    Write-Host " -> Bạn có thể cài đặt Python 3.10+ từ: https://www.python.org/downloads/" -ForegroundColor Gray
+}
+
+# Kiểm tra .NET SDK (Tùy chọn)
+try {
+    $dotnetVersion = (dotnet --version 2>$null)
+    if ($dotnetVersion) {
+        Write-Success ".NET SDK đã sẵn sàng: $dotnetVersion"
+    }
+} catch {
+    Write-Warn "Chưa cài đặt .NET SDK (chỉ cần thiết nếu biên dịch mã nguồn C# cục bộ)."
 }
 
 # Kiểm tra FFmpeg
@@ -109,57 +115,85 @@ $VenvPython = Join-Path $VenvDir "Scripts\python.exe"
 $VenvPip = Join-Path $VenvDir "Scripts\pip.exe"
 $RequirementsFile = Join-Path $ScriptDir "requirements.txt"
 
-if (-not (Test-Path $VenvPython)) {
-    Write-Step "Đang tạo môi trường ảo Python mới tại '$VenvDir'..."
-    python -m venv $VenvDir
-    if ($LASTEXITCODE -ne 0) {
-        Write-Failure "Không thể tạo Virtual Environment!"
-        Read-Host "`nNhấn phím Enter để thoát..."
-        exit 1
-    }
-    Write-Success "Đã tạo thành công Python venv."
-} else {
-    Write-Success "Môi trường ảo Python đã tồn tại: $VenvPython"
-}
-
-# Cập nhật pip và dependencies nếu có requirements.txt
-if (Test-Path $RequirementsFile) {
-    Write-Step "Đang kiểm tra và cài đặt thư viện Python từ requirements.txt..."
-    & $VenvPip install --upgrade pip --quiet
-    & $VenvPip install -r $RequirementsFile --quiet
-    if ($LASTEXITCODE -eq 0) {
-        Write-Success "Đã đồng bộ toàn bộ gói phụ thuộc Python thành công."
+if ((Get-Command python -ErrorAction SilentlyContinue)) {
+    if (-not (Test-Path $VenvPython)) {
+        Write-Step "Đang tạo môi trường ảo Python mới tại '$VenvDir'..."
+        python -m venv $VenvDir
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "Đã tạo thành công Python venv."
+        } else {
+            Write-Warn "Không thể tạo Virtual Environment. Tiếp tục với Python mặc định."
+        }
     } else {
-        Write-Warn "Có cảnh báo trong quá trình cài đặt thư viện Python (vui lòng kiểm tra lại logs)."
+        Write-Success "Môi trường ảo Python đã tồn tại: $VenvPython"
     }
+
+    # Cập nhật pip và dependencies nếu có requirements.txt
+    if (Test-Path $RequirementsFile) {
+        Write-Step "Đang kiểm tra và cài đặt thư viện Python từ requirements.txt..."
+        if (Test-Path $VenvPip) {
+            & $VenvPip install --upgrade pip --quiet
+            & $VenvPip install -r $RequirementsFile --quiet
+        }
+        if ($LASTEXITCODE -eq 0) {
+            Write-Success "Đã đồng bộ toàn bộ gói phụ thuộc Python thành công."
+        } else {
+            Write-Warn "Có cảnh báo trong quá trình cài đặt thư viện Python."
+        }
+    } else {
+        Write-Step "Tạo tệp requirements.txt mẫu cho hệ sinh thái CreatorOS AI..."
+        $defaultRequirements = @(
+            "torch",
+            "torchaudio",
+            "demucs",
+            "openai-whisper",
+            "yt-dlp",
+            "playwright",
+            "google-genai",
+            "pydantic"
+        )
+        $defaultRequirements | Out-File -FilePath $RequirementsFile -Encoding UTF8
+        Write-Success "Đã khởi tạo requirements.txt."
+        if (Test-Path $VenvPip) {
+            & $VenvPip install -r $RequirementsFile --quiet
+        }
+    }
+
+    # Kiểm tra Playwright Browsers
+    $PlaywrightCli = Join-Path $VenvDir "Scripts\playwright.exe"
+    if (Test-Path $PlaywrightCli) {
+        Write-Step "Kiểm tra trình duyệt Playwright..."
+        & $PlaywrightCli install chromium --quiet
+    }
+}
+
+# =========================================================================
+# 3. KIỂM TRA & CÀI ĐẶT NODE.JS DEPENDENCIES
+# =========================================================================
+Write-Header "Cấu Hình Phụ Thuộc Node.js (Frontend & Backend)"
+
+$RootNodeModules = Join-Path $ScriptDir "node_modules"
+$BackendNodeModules = Join-Path $ScriptDir "backend\node_modules"
+
+if (-not (Test-Path $RootNodeModules)) {
+    Write-Step "Đang cài đặt dependencies cho Frontend (npm install)..."
+    npm install
 } else {
-    Write-Step "Tạo tệp requirements.txt mẫu cho hệ sinh thái CreatorOS AI..."
-    @"
-torch
-torchaudio
-demucs
-openai-whisper
-yt-dlp
-playwright
-google-genai
-pydantic
-"@ | Out-File -FilePath $RequirementsFile -Encoding UTF8
-    Write-Success "Đã khởi tạo requirements.txt. Đang cài đặt thư viện cơ bản..."
-    & $VenvPip install -r $RequirementsFile --quiet
+    Write-Success "Phụ thuộc Frontend đã sẵn sàng."
 }
 
-# Đảm bảo Playwright Browsers đã được cài đặt
-Write-Step "Kiểm tra trình duyệt Playwright..."
-$PlaywrightCli = Join-Path $VenvDir "Scripts\playwright.exe"
-if (Test-Path $PlaywrightCli) {
-    & $PlaywrightCli install chromium --quiet
+if (-not (Test-Path $BackendNodeModules)) {
+    Write-Step "Đang cài đặt dependencies cho Backend Daemon (npm install)..."
+    Push-Location (Join-Path $ScriptDir "backend")
+    npm install
+    Pop-Location
+} else {
+    Write-Success "Phụ thuộc Backend Daemon đã sẵn sàng."
 }
 
 # =========================================================================
-# 3. BIÊN DỊCH DỰ ÁN .NET 9 WPF (BUILD)
+# 4. BIÊN DỊCH DỰ ÁN .NET NẾU CÓ
 # =========================================================================
-Write-Header "Biên Dịch Dự Án C# 12 / .NET 9 WPF"
-
 $SolutionFile = Get-ChildItem -Path $ScriptDir -Filter "*.sln" | Select-Object -First 1
 $ProjectFile = Get-ChildItem -Path $ScriptDir -Recurse -Filter "*CreatorOS*.csproj" | Select-Object -First 1
 $TargetToBuild = if ($SolutionFile) { $SolutionFile.FullName } elseif ($ProjectFile) { $ProjectFile.FullName } else { $null }
@@ -168,42 +202,52 @@ $BuildConfiguration = "Debug"
 $WpfExecutable = $null
 
 if ($TargetToBuild) {
+    Write-Header "Biên Dịch Dự Án C# 12 / .NET 9 WPF"
     Write-Step "Đang biên dịch: $TargetToBuild ($BuildConfiguration Mode)..."
     dotnet build $TargetToBuild -c $BuildConfiguration --nologo -v quiet
 
-    if ($LASTEXITCODE -ne 0) {
-        Write-Failure "Biên dịch .NET thất bại! Vui lòng kiểm tra lỗi code trước khi khởi chạy."
-        Read-Host "`nNhấn phím Enter để thoát..."
-        exit 1
+    if ($LASTEXITCODE -eq 0) {
+        Write-Success "Biên dịch dự án .NET thành công!"
+        $WpfExecutable = (Get-ChildItem -Path (Join-Path $ScriptDir "bin\$BuildConfiguration\net9.0-windows") -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+        if (-not $WpfExecutable) {
+            $WpfExecutable = (Get-ChildItem -Path $ScriptDir -Recurse -Filter "*CreatorOS*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*bin\$BuildConfiguration*" } | Select-Object -First 1).FullName
+        }
     }
-    Write-Success "Biên dịch dự án .NET thành công!"
-
-    # Tìm file thực thi .exe
-    $WpfExecutable = (Get-ChildItem -Path (Join-Path $ScriptDir "bin\$BuildConfiguration\net9.0-windows") -Filter "*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
-    if (-not $WpfExecutable) {
-        $WpfExecutable = (Get-ChildItem -Path $ScriptDir -Recurse -Filter "*CreatorOS*.exe" -ErrorAction SilentlyContinue | Where-Object { $_.FullName -like "*bin\$BuildConfiguration*" } | Select-Object -First 1).FullName
-    }
-} else {
-    Write-Warn "Không tìm thấy file .sln hoặc .csproj ở thư mục gốc. Tìm kiếm file .exe có sẵn..."
-    $WpfExecutable = (Get-ChildItem -Path $ScriptDir -Recurse -Filter "*CreatorOS*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
 }
 
 # =========================================================================
-# 4. KHỞI CHẠY ỨNG DỤNG CREATOROS PRO_V40
+# 5. KHỞI CHẠY HỆ THỐNG CREATOROS PRO_V40
 # =========================================================================
 Write-Header "Khởi Chạy Ứng Dụng CreatorOS PRO_V40"
 
 # Cấu hình biến môi trường toàn cục cho tiến trình
 $env:PYTHONUNBUFFERED = "1"
 $env:CREATOROS_ENV = "Development"
-$env:CREATOROS_PYTHON_PATH = $VenvPython
+if (Test-Path $VenvPython) {
+    $env:CREATOROS_PYTHON_PATH = $VenvPython
+}
 
 if ($WpfExecutable -and (Test-Path $WpfExecutable)) {
-    Write-Success "Khởi chạy ứng dụng: $WpfExecutable"
+    Write-Success "Khởi chạy giao diện WPF Desktop: $WpfExecutable"
     Start-Process -FilePath $WpfExecutable -WorkingDirectory (Split-Path -Parent $WpfExecutable)
-    Write-Host "`n✨ Ứng dụng CreatorOS PRO_V40 đang chạy. Bạn có thể đóng cửa sổ này bất cứ lúc nào." -ForegroundColor Green
+    Write-Host "`n✨ Ứng dụng CreatorOS PRO_V40 đang chạy." -ForegroundColor Green
 } else {
-    Write-Warn "Không tìm thấy file .exe để tự động khởi chạy. Bạn có thể mở dự án trong Visual Studio / Rider để chạy trực tiếp."
+    Write-Step "Đang khởi động Backend Daemon (Cổng 5000)..."
+    Start-Process -FilePath "node" -ArgumentList "src/server.js" -WorkingDirectory (Join-Path $ScriptDir "backend") -WindowStyle Hidden
+
+    Write-Step "Đang khởi động Frontend Vite Dev Server (Cổng 3000)..."
+    Start-Process -FilePath "cmd.exe" -ArgumentList "/c npm run dev" -WorkingDirectory $ScriptDir -WindowStyle Hidden
+
+    Start-Sleep -Seconds 2
+    Write-Success "Backend Daemon đang chạy tại: http://localhost:5000"
+    Write-Success "Giao diện Frontend sẵn sàng tại: http://localhost:3000"
+
+    # Tự động mở trình duyệt đến giao diện ứng dụng
+    Start-Process "http://localhost:3000"
+
+    Write-Host "`n✨ Hệ thống CreatorOS PRO_V40 đã khởi chạy thành công!" -ForegroundColor Green
+    Write-Host " 🌐 Truy cập: http://localhost:3000" -ForegroundColor Cyan
 }
 
 Write-Host ""
+

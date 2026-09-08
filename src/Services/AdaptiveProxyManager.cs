@@ -232,6 +232,23 @@ public sealed class AdaptiveProxyManager : IDisposable
     }
 
     /// <summary>
+    /// Ghi nhận kết quả thành công cho proxy node.
+    /// </summary>
+    public void RecordSuccess(ProxyNode? proxy, double latencyMs = 0) => proxy?.RecordSuccess(latencyMs);
+
+    /// <summary>
+    /// Ghi nhận lỗi cho proxy node.
+    /// </summary>
+    public void RecordFailure(ProxyNode? proxy, HttpStatusCode? statusCode = null, string? error = null) => proxy?.RecordFailure(statusCode, error);
+
+    public void RecordFailure(ProxyNode? proxy, bool isTimeout, string? error = null) => proxy?.RecordFailure(isTimeout ? HttpStatusCode.RequestTimeout : null, error);
+
+    /// <summary>
+    /// Trả proxy về pool sau khi sử dụng xong.
+    /// </summary>
+    public void ReleaseProxy(ProxyNode? proxy) { }
+
+    /// <summary>
     /// Lấy proxy tốt nhất (HealthScore cao nhất + Latency thấp nhất) đang trong trạng thái khả dụng.
     /// </summary>
     public ProxyNode? AcquireBestProxy()

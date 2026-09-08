@@ -73,6 +73,20 @@ public sealed class FastSegmentDownloader : IDisposable
     }
 
     /// <summary>
+    /// Phương thức tĩnh tải nhanh một tệp video/audio phân đoạn HTTP Range.
+    /// </summary>
+    public static async Task<SegmentDownloadResult> DownloadAsync(
+        string url,
+        string destinationFilePath,
+        int workerCount = 4,
+        IProgress<SegmentDownloadProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var downloader = new FastSegmentDownloader();
+        return await downloader.DownloadAsync(url, destinationFilePath, progress, cancellationToken);
+    }
+
+    /// <summary>
     /// Thực hiện tải file với tính năng chia phân đoạn HTTP Range và hỗ trợ Resume.
     /// </summary>
     public async Task<SegmentDownloadResult> DownloadAsync(
@@ -692,7 +706,12 @@ public readonly record struct SegmentDownloadProgress(
     int ActiveWorkers,
     double PeakMemoryMb,
     string StatusMessage
-);
+)
+{
+    public TimeSpan EstimatedTimeRemaining => SpeedMegaBytesPerSecond > 0 && TotalFileBytes > TotalBytesDownloaded 
+        ? TimeSpan.FromSeconds((TotalFileBytes - TotalBytesDownloaded) / (SpeedMegaBytesPerSecond * 1024 * 1024)) 
+        : TimeSpan.Zero;
+}
 
 public readonly record struct SegmentDownloadResult(
     bool Success,

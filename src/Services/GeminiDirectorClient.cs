@@ -101,20 +101,20 @@ public sealed class GeminiDirectorClient : IDisposable
             return FastSyllableFittedFallback(line, currentVietnameseText, targetSyllables, emotion);
         }
 
-        string systemPrompt = $"""
+        string systemPrompt = $$"""
             Bạn là Đạo diễn Lồng tiếng Điện ảnh (Voice Director) chuyên nghiệp của CreatorOS.
             Nhiệm vụ: Viết lại DUY NHẤT 1 câu thoại tiếng Việt cho phân cảnh phim:
-            1. KHÓA ÂM TIẾT CHUẨN XÁC: Số lượng âm tiết (từ đơn) của câu trả về PHẢI ĐẠT CHÍNH XÁC {targetSyllables} từ (dung sai [{Math.Max(2, targetSyllables - 1)}-{targetSyllables + 1}]).
-            2. TỰ NHIÊN & KHỚP NHỊP: Giữ nguyên phong thái nhân vật, văn phong phim và cảm xúc "{emotion}".
+            1. KHÓA ÂM TIẾT CHUẨN XÁC: Số lượng âm tiết (từ đơn) của câu trả về PHẢI ĐẠT CHÍNH XÁC {{targetSyllables}} từ (dung sai [{{Math.Max(2, targetSyllables - 1)}}-{{targetSyllables + 1}}]).
+            2. TỰ NHIÊN & KHỚP NHỊP: Giữ nguyên phong thái nhân vật, văn phong phim và cảm xúc "{{emotion}}".
             3. Trả về đúng 1 JSON object:
-            {{
-              "id": {line.Id},
-              "speaker_id": "{line.SpeakerId}",
+            {
+              "id": {{line.Id}},
+              "speaker_id": "{{line.SpeakerId}}",
               "vietnamese_text": "...",
-              "emotion": "{emotion}",
+              "emotion": "{{emotion}}",
               "speed_multiplier": 1.0,
               "pause_before_ms": 0.0
-            }}
+            }
             """;
 
         string userPrompt = $"Câu thoại gốc: \"{line.OriginalText}\"\nCâu hiện tại: \"{currentVietnameseText}\"\nSố âm tiết mục tiêu: {targetSyllables}\nHãy viết lại câu thoại tiếng Việt tự nhiên chuẩn xác {targetSyllables} âm tiết:";
@@ -308,15 +308,15 @@ public sealed class GeminiDirectorClient : IDisposable
         string relationshipsFormatted = string.Join("; ",
             sceneContext.CharacterRelationships.Select(kv => $"{kv.Key}: {kv.Value}"));
 
-        string systemPrompt = $"""
+        string systemPrompt = $$"""
             Bạn là Đạo diễn Lồng tiếng Điện ảnh (Voice Director & Dialogue Adapter) chuyên nghiệp của CreatorOS.
             Nhiệm vụ: Chuyển ngữ các câu thoại phụ đề gốc sang tiếng Việt tự nhiên, phù hợp văn phong phim và diễn xuất nhân vật.
 
             QUY TẮC BẮT BUỘC:
             1. ĐẠI TỪ XƯNG HÔ NHẤT QUÁN:
-               - Bối cảnh: {sceneContext.Setting}
-               - Tông giọng: {sceneContext.Tone}
-               - Quan hệ nhân vật: {relationshipsFormatted}
+               - Bối cảnh: {{sceneContext.Setting}}
+               - Tông giọng: {{sceneContext.Tone}}
+               - Quan hệ nhân vật: {{relationshipsFormatted}}
                - Cố định cặp xưng hô từ đầu đến cuối phân cảnh (anh - em, mày - tao, tôi - cậu, cha - con, v.v.), TUYỆT ĐỐI không thay đổi tùy tiện giữa các câu.
 
             2. KHÓA SỐ LƯỢNG ÂM TIẾT CHUẨN XÁC:
@@ -330,14 +330,14 @@ public sealed class GeminiDirectorClient : IDisposable
 
             Định dạng trả về: Duy nhất một mảng JSON các object theo schema:
             [
-              {{
+              {
                 "id": 1,
                 "speaker_id": "...",
                 "vietnamese_text": "...",
                 "emotion": "calm",
                 "speed_multiplier": 1.0,
                 "pause_before_ms": 0.0
-              }}
+              }
             ]
             """;
 

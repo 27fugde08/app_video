@@ -38,16 +38,6 @@ public readonly record struct WsolaTimeStretchPlan(
 }
 
 /// <summary>
-/// Kết quả bóc tách âm thanh đa tầng
-/// </summary>
-public readonly record struct StemSeparationResult(
-    string VocalsPath,     // 16kHz Mono cho Whisper STT
-    string BgmSfxPath,     // 44.1kHz Stereo chứa nhạc nền, hiệu ứng, tiếng động
-    double DurationSeconds,
-    bool Success
-);
-
-/// <summary>
 /// AcousticStudioEngine:
 /// Module xử lý âm thanh phòng thu chuyên sâu chuẩn .NET 9 C# 13:
 /// 1. Tách giọng Demucs/MDX-Net DirectML: vocals_raw.wav (16kHz Mono) và bgm_sfx.wav (44.1kHz Stereo).

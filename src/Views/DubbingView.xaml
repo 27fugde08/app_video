@@ -494,11 +494,11 @@
                             <StackPanel Grid.Column="0" Orientation="Horizontal">
                                 <!-- Step Back 5s -->
                                 <Button Command="{Binding StepBack5SecCommand}" Background="#1E2332" Foreground="#CBD5E1" 
-                                        BorderThickness="0" Padding="8,4" CornerRadius="4" Margin="0,0,4,0" Content="⏪ -5s" FontSize="11" Cursor="Hand"/>
+                                        BorderThickness="0" Padding="8,4" Margin="0,0,4,0" Content="⏪ -5s" FontSize="11" Cursor="Hand"/>
                                 
                                 <!-- Play/Pause Button -->
                                 <Button Command="{Binding TogglePlayPauseCommand}" Background="#7C3AED" Foreground="#FFFFFF" 
-                                        BorderThickness="0" Padding="14,4" CornerRadius="4" Margin="0,0,4,0" FontWeight="Bold" FontSize="11" Cursor="Hand">
+                                        BorderThickness="0" Padding="14,4" Margin="0,0,4,0" FontWeight="Bold" FontSize="11" Cursor="Hand">
                                     <TextBlock Text="{Binding IsPlaying, Converter={x:Null}, FallbackValue='▶ Phát'}">
                                         <TextBlock.Style>
                                             <Style TargetType="TextBlock">
@@ -517,7 +517,7 @@
 
                                 <!-- Step Forward 5s -->
                                 <Button Command="{Binding StepForward5SecCommand}" Background="#1E2332" Foreground="#CBD5E1" 
-                                        BorderThickness="0" Padding="8,4" CornerRadius="4" Margin="0,0,6,0" Content="+5s ⏩" FontSize="11" Cursor="Hand"/>
+                                        BorderThickness="0" Padding="8,4" Margin="0,0,6,0" Content="+5s ⏩" FontSize="11" Cursor="Hand"/>
 
                                 <!-- Loop Button -->
                                 <ToggleButton IsChecked="{Binding IsLooping, Mode=TwoWay}" Background="#1E2332" Foreground="#F8FAFC" 
@@ -603,7 +603,7 @@
                             <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                 <Button Command="{Binding ExtractViralShortsCommand}"
                                         Background="#EC4899" Foreground="#FFFFFF" BorderThickness="0"
-                                        Padding="10,4" CornerRadius="5" FontSize="10" FontWeight="Bold" Cursor="Hand" Margin="0,0,6,0"
+                                        Padding="10,4" FontSize="10" FontWeight="Bold" Cursor="Hand" Margin="0,0,6,0"
                                         ToolTip="Trích xuất 1 đoạn cao trào nhất &lt; 60s từ Whisper transcript + Tạo Hook 3s + Render 9:16">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="⚡ Trích Xuất Bản Shorts 60s (Viral Hook)" VerticalAlignment="Center"/>
@@ -611,7 +611,7 @@
                                 </Button>
                                 <Button Command="{Binding BatchTranslateWithGlossaryCommand}"
                                         Background="#7C3AED" Foreground="#FFFFFF" BorderThickness="0"
-                                        Padding="8,4" CornerRadius="5" FontSize="10" FontWeight="Bold" Cursor="Hand" Margin="0,0,4,0">
+                                        Padding="8,4" FontSize="10" FontWeight="Bold" Cursor="Hand" Margin="0,0,4,0">
                                     <StackPanel Orientation="Horizontal">
                                         <TextBlock Text="🌐 Dịch Kịch Bản Với Glossary" VerticalAlignment="Center"/>
                                     </StackPanel>
@@ -620,7 +620,7 @@
 
                             <Button Grid.Column="1" Command="{Binding RunAutoDiarizationCommand}"
                                     Background="#06B6D4" Foreground="#0B0D13" BorderThickness="0"
-                                    Padding="8,4" CornerRadius="5" FontSize="10" FontWeight="Bold" Cursor="Hand">
+                                    Padding="8,4" FontSize="10" FontWeight="Bold" Cursor="Hand">
                                 <TextBlock Text="🤖 Phân Đoạn Diarization"/>
                             </Button>
                         </Grid>
@@ -692,7 +692,7 @@
                                                                 Command="{Binding DataContext.GeminiReFitLineCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                                 CommandParameter="{Binding}"
                                                                 Background="#7C3AED" Foreground="#FFFFFF" BorderThickness="0"
-                                                                Padding="5,2" CornerRadius="4" Cursor="Hand" ToolTip="Tối ưu vừa vặn số từ trong < 350ms">
+                                                                Padding="5,2" Cursor="Hand" ToolTip="Tối ưu vừa vặn số từ trong &lt; 350ms">
                                                             <StackPanel Orientation="Horizontal">
                                                                 <Path Data="M 7 2 L 17 2 L 10 11 L 15 11 L 5 22 L 8 13 L 3 13 Z" Fill="#FDE047" Width="8" Height="8" Stretch="Uniform" Margin="0,0,3,0"/>
                                                                 <TextBlock Text="Re-Fit" FontSize="9" FontWeight="Bold"/>
@@ -726,7 +726,7 @@
                                                         </StackPanel>
 
                                                         <TextBlock Grid.Column="1" Text="Đang Re-Fit..." FontSize="9" Foreground="#F59E0B" FontWeight="Bold"
-                                                                   Visibility="{Binding IsReFitting, Converter={x:Static BooleanToVisibilityConverter.Instance}, FallbackValue=Collapsed}"/>
+                                                                   Visibility="{Binding IsReFitting, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
                                                     </Grid>
                                                 </Grid>
                                             </Border>
@@ -774,7 +774,7 @@
 
                             <Button Grid.Column="1" Command="{Binding RunAutoDiarizationCommand}"
                                     Background="#06B6D4" Foreground="#0B0D13" BorderThickness="0"
-                                    Padding="8,4" CornerRadius="5" FontSize="10" FontWeight="Bold" Cursor="Hand">
+                                    Padding="8,4" FontSize="10" FontWeight="Bold" Cursor="Hand">
                                 <TextBlock Text="⚡ Phân Vai Tự Động"/>
                             </Button>
                         </Grid>
@@ -873,7 +873,7 @@
 
                                     <Button Grid.Column="1" Command="{Binding AssignVoiceToSpeakerCommand}"
                                             Background="#7C3AED" Foreground="#FFFFFF" BorderThickness="0"
-                                            Padding="8,4" CornerRadius="4" FontSize="10" FontWeight="Bold" Cursor="Hand">
+                                            Padding="8,4" FontSize="10" FontWeight="Bold" Cursor="Hand">
                                         <TextBlock Text="Gán Giọng"/>
                                     </Button>
                                 </Grid>
@@ -913,7 +913,7 @@
 
                             <Button Grid.Column="1" Command="{Binding BatchTranslateWithGlossaryCommand}"
                                     Background="#7C3AED" Foreground="#FFFFFF" BorderThickness="0"
-                                    Padding="8,4" CornerRadius="5" FontSize="10" FontWeight="Bold" Cursor="Hand">
+                                    Padding="8,4" FontSize="10" FontWeight="Bold" Cursor="Hand">
                                 <TextBlock Text="⚡ Áp Dụng Dịch Toàn Bộ"/>
                             </Button>
                         </Grid>
@@ -950,7 +950,7 @@
                                                     <Button Grid.Column="3" Command="{Binding DataContext.RemoveGlossaryItemCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
                                                             CommandParameter="{Binding}"
                                                             Background="#EF4444" Foreground="#FFFFFF" BorderThickness="0"
-                                                            Padding="4,2" CornerRadius="3" FontSize="9" FontWeight="Bold" Cursor="Hand">
+                                                            Padding="4,2" FontSize="9" FontWeight="Bold" Cursor="Hand">
                                                         <TextBlock Text="Xóa"/>
                                                     </Button>
                                                 </Grid>
@@ -996,7 +996,7 @@
 
                                     <Button Grid.Column="3" Command="{Binding AddGlossaryItemCommand}"
                                             Background="#10B981" Foreground="#0B0D13" BorderThickness="0"
-                                            Padding="8,3" CornerRadius="4" FontSize="10" FontWeight="Bold" Cursor="Hand">
+                                            Padding="8,3" FontSize="10" FontWeight="Bold" Cursor="Hand">
                                         <TextBlock Text="Thêm"/>
                                     </Button>
                                 </Grid>
@@ -1046,7 +1046,7 @@
                                         <TextBlock Text="{Binding VoiceTrackVolume, StringFormat='{}{0:P0}'}" FontSize="9" FontWeight="Bold" Foreground="#F8FAFC" HorizontalAlignment="Center" FontFamily="Consolas"/>
                                         <Button Command="{Binding ToggleVoiceMuteCommand}"
                                                 Background="{Binding IsVoiceMuted, Converter={x:Null}, FallbackValue='#EF4444'}" 
-                                                Foreground="#FFFFFF" BorderThickness="0" Padding="6,2" CornerRadius="3" Margin="0,4,0,0" FontSize="9" Cursor="Hand">
+                                                Foreground="#FFFFFF" BorderThickness="0" Padding="6,2" Margin="0,4,0,0" FontSize="9" Cursor="Hand">
                                             <TextBlock Text="MUTE"/>
                                         </Button>
                                     </StackPanel>
@@ -1059,7 +1059,7 @@
                                         <Slider Orientation="Vertical" Minimum="0" Maximum="1.5" Value="{Binding BgmTrackVolume, Mode=TwoWay}" Height="120" Margin="0,8"/>
                                         <TextBlock Text="{Binding BgmTrackVolume, StringFormat='{}{0:P0}'}" FontSize="9" FontWeight="Bold" Foreground="#F8FAFC" HorizontalAlignment="Center" FontFamily="Consolas"/>
                                         <Button Command="{Binding ToggleBgmMuteCommand}"
-                                                Background="#EF4444" Foreground="#FFFFFF" BorderThickness="0" Padding="6,2" CornerRadius="3" Margin="0,4,0,0" FontSize="9" Cursor="Hand">
+                                                Background="#EF4444" Foreground="#FFFFFF" BorderThickness="0" Padding="6,2" Margin="0,4,0,0" FontSize="9" Cursor="Hand">
                                             <TextBlock Text="MUTE"/>
                                         </Button>
                                     </StackPanel>
@@ -1071,7 +1071,7 @@
                                         <TextBlock Text="Track Hiệu Ứng" FontSize="9" FontWeight="Bold" Foreground="#10B981" HorizontalAlignment="Center"/>
                                         <Slider Orientation="Vertical" Minimum="0" Maximum="1.5" Value="{Binding SfxTrackVolume, Mode=TwoWay}" Height="120" Margin="0,8"/>
                                         <TextBlock Text="{Binding SfxTrackVolume, StringFormat='{}{0:P0}'}" FontSize="9" FontWeight="Bold" Foreground="#F8FAFC" HorizontalAlignment="Center" FontFamily="Consolas"/>
-                                        <Button Background="#282F44" Foreground="#CBD5E1" BorderThickness="0" Padding="6,2" CornerRadius="3" Margin="0,4,0,0" FontSize="9">
+                                        <Button Background="#282F44" Foreground="#CBD5E1" BorderThickness="0" Padding="6,2" Margin="0,4,0,0" FontSize="9">
                                             <TextBlock Text="MUTE"/>
                                         </Button>
                                     </StackPanel>

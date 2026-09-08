@@ -74,6 +74,7 @@ public sealed class PipelineConveyorOrchestrator : IDisposable
     private volatile bool _isConveyorModeEnabled = true;
     private volatile bool _isAiPipelinePaused = false;
     private bool _disposed;
+    private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(_disposed, this);
 
     // Giám sát trạng thái hoạt động của các luồng
     private int _activeNetworkDownloads = 0;
@@ -111,6 +112,11 @@ public sealed class PipelineConveyorOrchestrator : IDisposable
     public int ActiveNvencRenders => Volatile.Read(ref _activeNvencRenders);
     public int QueuedInChannelCount => _conveyorChannel.Reader.Count;
 
+    public PipelineConveyorOrchestrator()
+        : this(new PipelineStateManager(), new HardwareGovernor())
+    {
+    }
+
     public PipelineConveyorOrchestrator(
         PipelineStateManager stateManager,
         HardwareGovernor hardwareGovernor,
@@ -132,6 +138,7 @@ public sealed class PipelineConveyorOrchestrator : IDisposable
             SingleReader = false
         };
         _conveyorChannel = Channel.CreateBounded<DubbingTaskContext>(options);
+        _stateManager.JobStageChanged += (s, job) => PipelineProgressUpdated?.Invoke(this, job);
 
         // Khởi động vòng lặp tiêu thụ ngầm trên ThreadPool
         _conveyorConsumerTask = Task.Run(ProcessConveyorLoopAsync);
@@ -140,6 +147,30 @@ public sealed class PipelineConveyorOrchestrator : IDisposable
     // ==============================================================================
     // 1. BÀN GIAO TỨC THÌ TỪ BỘ TẢI XUỐNG (Single-Item Fast Handoff)
     // ==============================================================================
+
+    /// <summary>
+    /// Thêm video tải xong vào băng chuyền lồng tiếng.
+    /// </summary>
+    public Task<bool> EnqueueVideoFromDownloaderAsync(
+        string jobId,
+        string videoTitle,
+        string filePath,
+        long fileSizeBytes,
+        uint crc32,
+        DubbingTaskConfig? config = null,
+        CancellationToken ct = default)
+        => OnSingleVideoDownloadCompletedAsync(jobId, "default_batch", videoTitle, filePath, fileSizeBytes, crc32, config, ct);
+
+    public Task<bool> EnqueueVideoFromDownloaderAsync(
+        string jobId,
+        string batchId,
+        string videoTitle,
+        string filePath,
+        long fileSizeBytes,
+        uint crc32,
+        DubbingTaskConfig? config = null,
+        CancellationToken ct = default)
+        => OnSingleVideoDownloadCompletedAsync(jobId, batchId, videoTitle, filePath, fileSizeBytes, crc32, config, ct);
 
     /// <summary>
     /// Được gọi ngay khi 1 video vừa tải xong và vượt qua kiểm tra toàn vẹn CRC32
@@ -258,7 +289,7 @@ public sealed class PipelineConveyorOrchestrator : IDisposable
             Interlocked.Decrement(ref _activeDemucsTasks);
 
             // VRAM Staging: Giải phóng bộ đệm VRAM của Demucs trước khi chuyển sang Whisper/Inpainter
-            GC.Collect(generation: 1, GCCollectionMode.Optimized, isBlocking: false);
+            GC.Collect(1, GCCollectionMode.Optimized, blocking: false);
 
             // -------------------------------------------------------------
             // BƯỚC 2: BÓC BĂNG WHISPER (Transcribing STT)

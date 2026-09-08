@@ -44,7 +44,7 @@ public readonly record struct VideoMetadata(
 /// <summary>
 /// Sự kiện phát ra khi tải phân đoạn video thành công
 /// </summary>
-public readonly record struct VideoDownloadCompletedEvent(
+public sealed record class VideoDownloadCompletedEvent(
     string FilePath,
     VideoMetadata Meta
 );
@@ -339,7 +339,7 @@ public sealed class NativeDubbingOrchestrator : IRecipient<VideoDownloadComplete
                 OriginalText: s.Text
             )).ToList();
 
-            var directedLines = await _directorClient.DirectSceneBatchAsync(subtitleLines, config.GeminiApiKey, token).ConfigureAwait(false);
+            var directedLines = await _directorClient.DirectSceneBatchAsync(subtitleLines, config.GeminiApiKey ?? string.Empty, token).ConfigureAwait(false);
 
             // ==============================================================================
             // BƯỚC 4: SINH GIỌNG ĐỌC IN-MEMORY (Kokoro TTS / Edge-TTS -> PCM 24kHz)
@@ -549,7 +549,6 @@ public sealed class NativeDubbingOrchestrator : IRecipient<VideoDownloadComplete
 
         try
         {
-            var span = pcmData.AsSpan(0, totalSamples * 2);
             double baseFreq = 175.0; // Giọng người
 
             for (int i = 0; i < totalSamples; i++)
@@ -558,12 +557,12 @@ public sealed class NativeDubbingOrchestrator : IRecipient<VideoDownloadComplete
                 double env = Math.Sin(Math.PI * (t / dur));
                 double val = Math.Sin(2.0 * Math.PI * baseFreq * t) * 0.75 + Math.Sin(2.0 * Math.PI * baseFreq * 2 * t) * 0.2;
                 short sample = (short)(val * env * 17000.0);
-                BinaryPrimitives.WriteInt16LittleEndian(span.Slice(i * 2, 2), sample);
+                BinaryPrimitives.WriteInt16LittleEndian(pcmData.AsSpan(i * 2, 2), sample);
             }
 
             await using var fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true);
             await fs.WriteAsync(header, ct).ConfigureAwait(false);
-            await fs.WriteAsync(span.ToArray(), ct).ConfigureAwait(false);
+            await fs.WriteAsync(pcmData.AsMemory(0, totalSamples * 2), ct).ConfigureAwait(false);
         }
         finally
         {

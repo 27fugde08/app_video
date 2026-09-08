@@ -297,9 +297,9 @@ public sealed class HighlightExtractor
     /// </summary>
     public List<HighlightSegment> FindHighlightSegments(double[] fusionTimeline, int totalSeconds)
     {
-        int minDuration = (int)Math.Floor(_options.MinSegmentDurationSec);
-        int maxDuration = (int)Math.Ceiling(_options.MaxSegmentDurationSec);
-        int targetDuration = (int)Math.Round(_options.TargetSegmentDurationSec);
+        int minDuration = (int)Math.Floor((double)_options.MinSegmentDurationSec);
+        int maxDuration = (int)Math.Ceiling((double)_options.MaxSegmentDurationSec);
+        int targetDuration = (int)Math.Round((double)_options.TargetSegmentDurationSec);
 
         var candidateWindows = new List<(int Start, int End, double AvgScore)>();
 

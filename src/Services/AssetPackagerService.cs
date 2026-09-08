@@ -13,6 +13,7 @@ using System.Security.Cryptography;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using CreatorOS.Core.Contracts;
 using CreatorOS.Core.Infrastructure;
 
 namespace CreatorOS.Core.Services;
@@ -55,23 +56,6 @@ public sealed class AssetBundleRequest
     public List<string> IntermediateStemPaths { get; set; } = new();
 
     public required PathContext Context { get; set; }
-}
-
-/// <summary>
-/// Kết quả tổng hợp sau khi hoàn tất đóng gói Bundle.
-/// </summary>
-public sealed class AssetBundleResult
-{
-    public bool IsSuccess { get; set; }
-    public string BundleDirectoryPath { get; set; } = string.Empty;
-    public string FinalVideoPath { get; set; } = string.Empty;
-    public string? ThumbnailPath { get; set; }
-    public long TotalBundleSizeBytes { get; set; }
-    public int TotalFilesCount { get; set; }
-    public double ElapsedMilliseconds { get; set; }
-    public bool UsedAtomicMftMove { get; set; }
-    public string? ErrorMessage { get; set; }
-    public List<string> PackagedFiles { get; set; } = new();
 }
 
 /// <summary>
@@ -316,7 +300,7 @@ public sealed class AssetPackagerService
                 position += bytesRead;
             }
 
-            await RandomAccess.FlushStoreToDiskAsync(dstHandle).ConfigureAwait(false);
+            RandomAccess.FlushToDisk(dstHandle);
         }
         finally
         {

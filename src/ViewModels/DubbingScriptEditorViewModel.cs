@@ -250,7 +250,7 @@ public sealed partial class DubbingScriptEditorViewModel : ObservableObject, IDi
         _acousticEngine = acousticEngine ?? new AcousticStudioEngine();
 
         // Nạp API key từ môi trường nếu có
-        _geminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? string.Empty;
+        GeminiApiKey = Environment.GetEnvironmentVariable("GEMINI_API_KEY") ?? string.Empty;
 
         // Khởi tạo kịch bản mẫu chuẩn nghiệp vụ
         LoadInitialSampleScript();
@@ -283,7 +283,7 @@ public sealed partial class DubbingScriptEditorViewModel : ObservableObject, IDi
                 line: line,
                 currentVietnameseText: item.VietnameseText,
                 targetSyllables: item.TargetSyllables,
-                apiKey: _geminiApiKey,
+                apiKey: GeminiApiKey,
                 emotion: item.Emotion,
                 ct: _cts.Token
             ).ConfigureAwait(true);

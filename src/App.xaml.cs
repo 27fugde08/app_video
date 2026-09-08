@@ -30,14 +30,27 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        var services = new ServiceCollection();
-        CreatorOS.Infrastructure.ServiceContainer.ConfigureServices(services);
+        AppDomain.CurrentDomain.UnhandledException += (s, ev) =>
+        {
+            File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), ev.ExceptionObject.ToString());
+        };
 
-        _serviceProvider = services.BuildServiceProvider();
+        try
+        {
+            var services = new ServiceCollection();
+            CreatorOS.Infrastructure.ServiceContainer.ConfigureServices(services);
 
-        // Khởi tạo và hiển thị MainWindow từ IoC Container
-        var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
-        mainWindow.Show();
+            _serviceProvider = services.BuildServiceProvider();
+
+            // Khởi tạo và hiển thị MainWindow từ IoC Container
+            var mainWindow = _serviceProvider.GetRequiredService<MainWindow>();
+            mainWindow.Show();
+        }
+        catch (Exception ex)
+        {
+            File.WriteAllText(Path.Combine(AppContext.BaseDirectory, "crash.log"), ex.ToString());
+            throw;
+        }
     }
 
     private static void ConfigureServices(IServiceCollection services)

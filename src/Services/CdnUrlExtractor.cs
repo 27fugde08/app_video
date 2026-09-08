@@ -20,7 +20,6 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using CreatorOS.Core.Contracts;
-using CreatorOS.Native;
 
 namespace CreatorOS.Core.Services;
 
@@ -843,7 +842,7 @@ public sealed partial class CdnUrlExtractor : IDisposable
 
                 return response;
             }
-            catch (HttpRequestException ex) when (attempt < _options.MaxRetries)
+            catch (HttpRequestException) when (attempt < _options.MaxRetries)
             {
                 attempt++;
                 await Task.Delay(TimeSpan.FromSeconds(currentBackoffSec), ct).ConfigureAwait(false);

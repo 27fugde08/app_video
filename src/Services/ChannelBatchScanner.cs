@@ -98,6 +98,31 @@ public sealed partial class ChannelBatchScanner : IDisposable
     }
 
     /// <summary>
+    /// Phương thức tĩnh quét nhanh danh sách video từ Channel/Profile/Playlist.
+    /// </summary>
+    public static async Task<ChannelScanResult> ScanAsync(
+        string channelUrlOrId,
+        int targetCount = 50,
+        IProgress<ScannerProgress>? progress = null,
+        CancellationToken cancellationToken = default)
+    {
+        using var scanner = new ChannelBatchScanner(new ChannelScannerOptions { MaxVideosToFetch = targetCount });
+        return await scanner.ScanChannelAsync(channelUrlOrId, progress, cancellationToken);
+    }
+
+    /// <summary>
+    /// Quét bóc tách toàn bộ danh sách video từ Channel URL, Profile URL hoặc Playlist URL với tùy chọn riêng.
+    /// </summary>
+    public Task<ChannelScanResult> ScanChannelAsync(
+        string channelOrPlaylistUrl,
+        ChannelScannerOptions options,
+        IProgress<ScannerProgress>? progress = null,
+        CancellationToken ct = default)
+    {
+        return ScanChannelAsync(channelOrPlaylistUrl, progress, ct);
+    }
+
+    /// <summary>
     /// Quét bóc tách toàn bộ danh sách video từ Channel URL, Profile URL hoặc Playlist URL.
     /// </summary>
     public async Task<ChannelScanResult> ScanChannelAsync(

@@ -179,7 +179,7 @@
                     <TextBlock Text="{Binding StatusMessage}" Foreground="#F8FAFC" FontSize="12" FontWeight="SemiBold" Margin="0,0,0,4"/>
                     <ProgressBar Value="{Binding UploadProgress}" Maximum="100" Height="6" Width="380" HorizontalAlignment="Left"
                                  Background="#334155" Foreground="#10B981" BorderThickness="0"
-                                 Visibility="{Binding IsUploading, Converter={x:Static BooleanToVisibilityConverter.Instance}, FallbackValue=Collapsed}"/>
+                                 Visibility="{Binding IsUploading, Converter={StaticResource BooleanToVisibilityConverter}, FallbackValue=Collapsed}"/>
                 </StackPanel>
 
                 <TextBlock Grid.Column="1" Text="{Binding TransferSpeed, StringFormat='{}Tốc độ: {0:F1} MB/s'}" Foreground="#38BDF8" FontWeight="Bold" FontSize="12" VerticalAlignment="Center"/>

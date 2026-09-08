@@ -31,7 +31,6 @@ public static class ServiceContainer
         // ----------------------------------------------------------------------
         // 1. Core Singletons (Hardware Governor, Master Dispatcher & Databases)
         // ----------------------------------------------------------------------
-        services.AddSingleton<AppPaths>();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<HardwareGovernor>();
         services.AddSingleton<MasterJobDispatcher>();
@@ -49,6 +48,7 @@ public static class ServiceContainer
                 queueCapacity: 500
             );
         });
+        services.AddSingleton<IJobQueue>(sp => (IJobQueue)sp.GetRequiredService<IInMemoryJobQueue>());
 
         // ----------------------------------------------------------------------
         // 2. Multimedia Processing & AI Engines (Transient / Factory)
@@ -78,6 +78,7 @@ public static class ServiceContainer
         // ----------------------------------------------------------------------
         // 3. ViewModels (MVVM Pattern)
         // ----------------------------------------------------------------------
+        services.AddSingleton<MainShellViewModel>();
         services.AddSingleton<MainViewModel>();
         services.AddTransient<BatchDownloadViewModel>();
         services.AddTransient<DownloadBatchViewModel>();

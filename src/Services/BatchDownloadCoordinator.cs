@@ -374,7 +374,6 @@ public sealed class BatchDownloadCoordinator : IAsyncDisposable, IDisposable
         using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(_masterCts.Token, job.Token);
         var token = linkedCts.Token;
 
-        bool success = false;
         int currentAttempt = 0;
 
         while (currentAttempt <= _options.MaxRetriesPerJob && !token.IsCancellationRequested)
@@ -433,7 +432,6 @@ public sealed class BatchDownloadCoordinator : IAsyncDisposable, IDisposable
                 // -------------------------------------------------------------
                 // BƯỚC 5: Hoàn tất tác vụ & Ghi nhận thành công
                 // -------------------------------------------------------------
-                success = true;
                 UpdateJobStatus(job, CoordinatorJobStatus.Completed, "Tải và đóng gói hoàn tất 100%");
                 EmitProgress(job, 100.0, 0, job.TotalBytes, job.TotalBytes, TimeSpan.Zero, "Hoàn tất");
 
@@ -686,10 +684,10 @@ public sealed class BatchDownloadCoordinator : IAsyncDisposable, IDisposable
             Author = job.Author,
             Platform = job.Platform.ToString(),
             CreatedTime = DateTime.UtcNow,
-            VideoUrl = job.FinalVideoPath,
+            VideoUrl = job.FinalVideoPath ?? string.Empty,
             CoverUrl = job.CoverUrl ?? string.Empty,
             AudioUrl = job.DirectAudioUrl ?? string.Empty,
-            SubtitlesRawVtt = job.SubtitlesVtt,
+            SubtitlesRawVtt = job.SubtitlesVtt ?? string.Empty,
             LikeCount = 12500,
             ViewCount = 85000,
             Hashtags = new List<string> { "#creatoros", "#trending", "#viral" }

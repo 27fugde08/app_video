@@ -47,6 +47,7 @@ public enum PipelineStage
     CleaningHardcodedSubs = 6,  // Tiền xử lý xóa phụ đề gốc (LaMa DirectML / Fast Delogo) [Đang Tẩy Xóa Phụ Đề Gốc]
     Synthesizing_TTS = 7,       // TTS thần kinh tạo giọng lồng tiếng mới
     Acoustic_Muxing = 8,        // Ghép khẩu hình, Sidechain BGM & NVENC 1-Pass Render [Đang Ghép Khẩu Hình/Render NVENC]
+    RenderDubbedAudio = 8,
     Completed = 9,              // Hoàn thành xuất xưởng [Hoàn Thành]
     Failed = 10                 // Gặp sự cố cần thử lại hoặc báo lỗi
 }
@@ -70,6 +71,7 @@ public sealed class PipelineJobRecord
     public string? DubbedAudioPath { get; set; }
     public string? FinalVideoPath { get; set; }
     public string? LastError { get; set; }
+    public string? ErrorMessage { get => LastError; set => LastError = value; }
     public DateTime CreatedAtUtc { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 

@@ -56,6 +56,28 @@ public sealed class AdaptiveStreamMuxer : IDisposable
     }
 
     /// <summary>
+    /// Phương thức tĩnh đóng gói luồng video và audio nhanh.
+    /// </summary>
+    public static async Task<MuxingResult> MuxAsync(
+        string videoPath = "",
+        string audioPath = "",
+        string outputPath = "",
+        bool deleteSourceFilesOnSuccess = true,
+        IProgress<MuxingProgress>? progress = null,
+        CancellationToken cancellationToken = default,
+        string videoFilePath = "",
+        string audioFilePath = "",
+        string outputFilePath = "")
+    {
+        string v = !string.IsNullOrEmpty(videoFilePath) ? videoFilePath : videoPath;
+        string a = !string.IsNullOrEmpty(audioFilePath) ? audioFilePath : audioPath;
+        string o = !string.IsNullOrEmpty(outputFilePath) ? outputFilePath : outputPath;
+
+        using var muxer = new AdaptiveStreamMuxer();
+        return await muxer.MuxStreamsAsync(v, a, o, deleteSourceFilesOnSuccess, progress, cancellationToken);
+    }
+
+    /// <summary>
     /// Ghép luồng video và audio tải riêng rẽ thành 1 file MP4 hoàn chỉnh.
     /// </summary>
     public async Task<MuxingResult> MuxStreamsAsync(

@@ -437,7 +437,6 @@ CÁC NGUYÊN TẮC BẮT BUỘC ĐỂ GIỮ NHỊP TIMELINE:
 
         try
         {
-            var span = pcmData.AsSpan(0, totalSamples * 2);
             double baseFreq = 160.0; // Tần số giọng người nam/nữ tự nhiên (160Hz)
 
             for (int i = 0; i < totalSamples; i++)
@@ -449,12 +448,12 @@ CÁC NGUYÊN TẮC BẮT BUỘC ĐỂ GIỮ NHỊP TIMELINE:
                                    + Math.Sin(2.0 * Math.PI * (baseFreq * 2.0) * t) * 0.25;
 
                 short pcm16 = (short)(voiceSample * envelope * 16000.0);
-                BinaryPrimitives.WriteInt16LittleEndian(span.Slice(i * 2, 2), pcm16);
+                BinaryPrimitives.WriteInt16LittleEndian(pcmData.AsSpan(i * 2, 2), pcm16);
             }
 
             await using var fs = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, true);
             await fs.WriteAsync(header, ct).ConfigureAwait(false);
-            await fs.WriteAsync(span.ToArray(), ct).ConfigureAwait(false);
+            await fs.WriteAsync(pcmData.AsMemory(0, totalSamples * 2), ct).ConfigureAwait(false);
         }
         finally
         {

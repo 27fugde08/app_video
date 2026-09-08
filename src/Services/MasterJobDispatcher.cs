@@ -56,9 +56,9 @@ public sealed class JobPayload
 }
 
 /// <summary>
-/// Struct message bất biến bắn qua WeakReferenceMessenger (Zero Allocation)
+/// Class message bất biến bắn qua WeakReferenceMessenger (Zero Allocation)
 /// </summary>
-public readonly record struct PipelineStageChangedMessage(
+public sealed record class PipelineStageChangedMessage(
     string JobId,
     PipelineModuleType Module,
     string StageName,
