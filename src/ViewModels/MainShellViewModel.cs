@@ -124,17 +124,9 @@ public sealed partial class MainShellViewModel : ObservableObject, IDisposable
         // Phân khu 1: SẢN XUẤT NỘI DUNG
         new("downloader", "Batch Downloader Pro", "SẢN XUẤT NỘI DUNG", "Quét & tải video đa nguồn với Token Bucket HTTP/3 Range", "downloader", "📥", "Turbo V5"),
         new("dubbing", "Dịch & Lồng Tiếng AI (Multi-Preset)", "SẢN XUẤT NỘI DUNG", "Tách âm Demucs, kịch bản 5 Hồi, chuyển động Manga & cắt Shorts 60s", "dubbing", "🌐", "Global"),
-        new("timeline", "Studio Edit Timeline (D3D11)", "SẢN XUẤT NỘI DUNG", "Dựng đa lớp D3D11 SwapChain, khử bản quyền thời gian thực", "timeline", "🎞️", "DirectX"),
 
-        // Phân khu 2: XỬ LÝ CHUYÊN SÂU
-        new("voice", "Voice Studio & Clone Offline", "XỬ LÝ CHUYÊN SÂU", "Kokoro TTS & F5-TTS lossless, tạo giọng đọc biểu cảm", "voice", "🎙️", "0ms GPU"),
-        new("lipsync", "Lip-Sync Wav2Lip Studio", "XỬ LÝ CHUYÊN SÂU", "Đồng bộ chuyển động môi 68 Face Landmarks bằng ONNX", "lipsync", "👄", "RTX NVENC"),
-        new("thumbnail", "Auto 3D Thumbnail & SEO", "XỬ LÝ CHUYÊN SÂU", "Sinh ảnh bìa 3D chất lượng cao, tối ưu thẻ tag tiêu đề", "thumbnail", "🖼️", "Rank 1"),
-        new("shield", "Content ID Shield", "XỬ LÝ CHUYÊN SÂU", "Lớp bảo vệ video khử audio fingerprint và video matrix", "shield", "🛡️", "No-Strike"),
-
-        // Phân khu 3: HỆ THỐNG & XUẤT BẢN
-        new("publisher", "Đăng Tải Đa Kênh Tự Động", "HỆ THỐNG & XUẤT BẢN", "Hẹn giờ và xuất bản lên TikTok, YouTube Reels, Fanpage", "publisher", "🚀", "Multi"),
-        new("queue", "Cài Đặt Hệ Thống & Quản Lý Luồng", "HỆ THỐNG & XUẤT BẢN", "Quản lý API Keys, Worker GPU/CPU, Hardware Governor", "queue", "⚙️", "System")
+        // Phân khu 2: HỆ THỐNG
+        new("queue", "Cài Đặt Hệ Thống & Quản Lý Luồng", "HỆ THỐNG & CÀI ĐẶT", "Quản lý API Keys, Worker GPU/CPU, Hardware Governor", "queue", "⚙️", "System")
     };
 
     public MainShellViewModel()
@@ -163,12 +155,6 @@ public sealed partial class MainShellViewModel : ObservableObject, IDisposable
             {
                 "downloader" => new BatchDownloadViewModel(),
                 "dubbing" or "catalog" or "highlight" => new DubbingViewModel(),
-                "timeline" => new TimelineEditorViewModel(),
-                "voice" => new VoiceStudioViewModel(),
-                "lipsync" => new LipSyncViewModel(),
-                "shield" => new ContentIdShieldViewModel(),
-                "thumbnail" => new ThumbnailSeoViewModel(),
-                "publisher" => new PublisherViewModel(),
                 "queue" or "settings" => new JobQueueViewModel(),
                 _ => new BatchDownloadViewModel()
             };

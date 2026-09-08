@@ -259,7 +259,7 @@
                                 </StackPanel>
                             </Button>
 
-                            <!-- 2. Dịch & Lồng Tiếng AI (Đã tích hợp Tóm Tắt, Truyện Tranh & Cắt Viral Hook Shorts) -->
+                            <!-- 2. Dịch & Lồng Tiếng AI -->
                             <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="dubbing">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="🌐" FontSize="12" Margin="0,0,8,0"/>
@@ -267,61 +267,10 @@
                                 </StackPanel>
                             </Button>
 
-                            <!-- 3. Studio Edit Timeline (D3D11) -->
-                            <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="timeline">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🎞️" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Timeline Studio (D3D11)" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Button>
+                            <!-- NHÓM 2: HỆ THỐNG -->
+                            <TextBlock Text="HỆ THỐNG &amp; CÀI ĐẶT" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="8,12,0,4"/>
 
-                            <!-- NHÓM 2: XỬ LÝ CHUYÊN SÂU -->
-                            <TextBlock Text="XỬ LÝ CHUYÊN SÂU" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="8,12,0,4"/>
-
-                            <!-- 5. Voice Studio & Clone -->
-                            <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="voice">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🎙️" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Voice Studio &amp; Clone" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- 6. Lip-Sync Wav2Lip -->
-                            <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="lipsync">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="👄" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Lip-Sync Wav2Lip Studio" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- 7. Auto 3D Thumbnail & SEO -->
-                            <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="thumbnail">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🖼️" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Auto 3D Thumbnail &amp; SEO" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- 8. Content ID Shield -->
-                            <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="shield">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🛡️" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Content ID Shield" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- NHÓM 3: HỆ THỐNG & XUẤT BẢN -->
-                            <TextBlock Text="HỆ THỐNG &amp; XUẤT BẢN" FontSize="9" FontWeight="Bold" Foreground="{StaticResource TextMutedBrush}" Margin="8,12,0,4"/>
-
-                            <!-- 9. Đăng Tải Đa Kênh -->
-                            <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="publisher">
-                                <StackPanel Orientation="Horizontal">
-                                    <TextBlock Text="🚀" FontSize="12" Margin="0,0,8,0"/>
-                                    <TextBlock Text="Đăng Tải Đa Kênh" TextTrimming="CharacterEllipsis"/>
-                                </StackPanel>
-                            </Button>
-
-                            <!-- 10. Master Job Queue / Settings -->
+                            <!-- 3. Cài Đặt & Quản Lý Luồng -->
                             <Button Style="{StaticResource SidebarNavButtonStyle}" Command="{Binding NavigateCommand}" CommandParameter="queue">
                                 <StackPanel Orientation="Horizontal">
                                     <TextBlock Text="⚙️" FontSize="12" Margin="0,0,8,0"/>

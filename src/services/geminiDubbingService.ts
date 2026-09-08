@@ -99,7 +99,7 @@ ${JSON.stringify(sourceCues, null, 2)}`;
 
     try {
       const response = await ai.models.generateContent({
-        model: "gemini-3.8-flash",
+        model: "gemini-2.5-flash",
         contents: prompt,
         config: {
           systemInstruction: "Trả về dữ liệu JSON dạng mảng chứa danh sách câu dịch kèm mốc thời gian.",
@@ -160,16 +160,8 @@ ${JSON.stringify(sourceCues, null, 2)}`;
     try {
       const ai = this.getGeminiClient();
       const response = await ai.models.generateContent({
-        model: "gemini-3.1-flash-tts-preview",
-        contents: [{ parts: [{ text: `Say naturally and clearly: ${text}` }] }],
-        config: {
-          responseModalities: [Modality.AUDIO],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: voiceName || "Kore" }
-            }
-          }
-        }
+        model: "gemini-2.5-flash",
+        contents: [{ parts: [{ text: `Say naturally and clearly: ${text}` }] }]
       });
 
       const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
